@@ -120,7 +120,7 @@ class KimalPHP
 	
 	//---------------------------------------------------------------------
 	
-	function createFrame($opc, $data)
+	function createFrame($opc, $data, $argType='number')
 	{ 
 		
 		
@@ -128,20 +128,21 @@ class KimalPHP
 		$opc = str_pad($opc, 2 , 0 , STR_PAD_LEFT);
 		
 		//los datos que intervienen en crc (fuera primer y ultimo char(byte))')
-		$data_crc = $this->get_data_crc($opc, $data);
+		$data_crc = $this->get_data_crc($opc, $data, $argType);
 		
 		
 		
 		
 		$crc =  $this->get_crc($data_crc);
 		
-		//echo "<br>crc en decimal:".$crc;
+		//echo "\n<br>crc en decimal:".$crc;
 		
-		//el ahora crc es un numero decimal...en formato hex
+		//el ahora crc es un numero decimal...en formato hex, OJO en mayusculas y debe ocupar dos caracteres pad 0
 		$crcHex = dechex($crc);
 		$crcHex = strtoupper($crcHex);
+		$crcHex = str_pad($crcHex, 2 , 0 , STR_PAD_LEFT);
 		
-		//echo "<br>crc en hexadecimal:".$crcHex;
+		//echo "\n<br>crc en hexadecimal:".$crcHex;
 		
 		return $this->STX . $data_crc . $crcHex . $this->EXT;
 	}
@@ -151,7 +152,7 @@ class KimalPHP
 	
 	//tomando opc y data(NA mas argumentos) nos dice cuales seran lso caracteres, ya con valores hexa que intervendran en el crc
 	//recibe byte de operacion (2char representando numero hexa) y $data qeue son los argumentos
-	function get_data_crc ($operation, $data)
+	function get_data_crc ($operation, $data, $argType)
 	{
 	
 		//la cadena es la operacion en si, usamos cadenas para esto aunque nos refiramos a numeros
@@ -165,7 +166,7 @@ class KimalPHP
 		
 		//echo "<br>la longitud en hexa del data,(NA)".$length_hex;
 		
-		$data_hex = $this->byte_to_hex ($data);
+		$data_hex = $this->byte_to_hex ($data,$argType);
 		
 		//echo "<br>el data en hexa...".$data_hex;
 		
@@ -180,8 +181,11 @@ class KimalPHP
 		
 		for($x=0; $x < strlen($data_crc); $x++)
 		{
+			
 			$crc += ord($data_crc[$x]);
-			//echo  '<br>caracter:'.$data_crc[$x].'tiene valor ascii: '.(ord($data_crc[$x])).' llevamos sumados:'.$crc;
+			
+			
+			//echo  '\n<br>caracter:'.$data_crc[$x].'tiene valor ascii: '.(ord($data_crc[$x])).' llevamos sumados:'.$crc;
 		}
 		
 		//por fin;
@@ -193,14 +197,22 @@ class KimalPHP
 	
 	//------------------------------------------------------------------------------
 	//informacion en bytes pasadas a caracteres que representen hexadecimales
-	function byte_to_hex ($charBytes)
+	function byte_to_hex ($charBytes,$argType)
 	{
         $data_hex = '';
         
         for($x=0; $x < strlen($charBytes); $x++)
         {
-        
-        	$dataNuevo = dechex(  ord($charBytes[$x])  );
+        	
+        	if($argType == "char")
+        	{	
+        		$dataNuevo = dechex(  ord($charBytes[$x])  );
+        	}
+        	else 
+        	{
+        		$dataNuevo = dechex( $charBytes[$x] );
+        	}
+        		
         	$dataNuevo = str_pad($dataNuevo, 2 , 0 , STR_PAD_LEFT);
         	
             $data_hex .= $dataNuevo;

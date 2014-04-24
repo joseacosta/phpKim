@@ -122,11 +122,11 @@
 	            <legend>Display</legend>
 	            	
 	            	Linea:
-	            	<input type="text" id="outputNum"  maxlength="20"  />
+	            	<input type="text" id="textLineaUno"  maxlength="20"  />
 	            	
 	            	<br/>
 	            	Linea:
-	            	<input type="text" id="outputTime"  maxlength="20"  />
+	            	<input type="text" id="textLineaDos"  maxlength="20"  />
 	            	
 	            	<br/>
 	            	<button id="btnWriteDisplay">WriteDisplay</button>

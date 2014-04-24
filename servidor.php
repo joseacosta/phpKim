@@ -55,7 +55,8 @@ $conex->on('data', function ($data)
 						
 					    echo "\nevento de electronica localizado con data: ".$data."\n\n";
 								
-						
+					    $mensaje_electronica = mask(json_encode(array('type'=>'usermsg', 'name'=>'Ans', 'message'=>$data, 'color'=>'black')));
+					    mandarTodosUsuarios($mensaje_electronica); //send data
 						
 				   });
 
@@ -108,23 +109,33 @@ $socket->on('connection', function ($conn) use ($conns, $conex, $tramaCierraRele
 												    	
 												    		$opc = $tst_msg->opc;
 												    		$argumentos = $tst_msg->arg;
+												    		$tipoArgumento = $tst_msg->argType;
 												    			
 												    		echo "\nusuario manda comando, opc:#".dechex($opc)."#, numArg:#".count($argumentos)."#\n";
 												    			
 												    		$arg="";
 												    			
-												    			
-												    		foreach ($argumentos as $unarg)
+															//si se pretende pasar una cadena de carateres como argumentos
+															//asi esta bien, si no, hay que pasarle los numerosconcatenados,
+															//recibe valores decimales pro que el objeto que genera las tramas, al final los traduce de nuevo a hexa
+												    		if($tipoArgumento == "char")
 												    		{
-												    			//TODO intenta evitar hacer chr() y luego en la func byte_to_ex deshacer con un ord()... problemas con texto ¿verdad?
-												    			//strval(dechex($opc));
-												    			$arg .= chr(hexdec($unarg));
+												    			$arg = $argumentos;
+												    		}	
+												    		else
+												    		{
+												    			foreach ($argumentos as $unarg)
+												    			{
+												    				//strval(dechex($opc));
+												    				$arg .= hexdec($unarg);
+												    			}
 												    		}
+												    		
+												    		
 												    			
 												    			
 												    			
-												    			
-												    		$trama = $miKimal->createFrame($opc, $arg);
+												    		$trama = $miKimal->createFrame($opc, $arg, $tipoArgumento);
 												    			
 												    			
 												    		echo "\n trama generada #".$trama."#\n";
@@ -140,7 +151,7 @@ $socket->on('connection', function ($conn) use ($conns, $conex, $tramaCierraRele
 												    	
 												    	
 												    	}
-												    	else //tipo msg se supone
+												    	else //el usuario manda mensage normal
 												    	{
 												    		$ipRemitente =	$conn->getRemoteAddress();
 												    		

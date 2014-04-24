@@ -45,6 +45,11 @@ function inicio()
 								var umsg = msg.message; //message text
 								var uname = msg.name; //user name
 								var ucolor = msg.color; //color
+								
+								if(esTramaDigitalInput(umsg))
+								{
+									procesaTramaDigitalInput(umsg);
+								}
 						
 								if(type == 'usermsg') 
 								{
@@ -112,6 +117,7 @@ function inicio()
 											comando: "generico",
 											opc: 0x40,
 											arg: [0x00,0x05],
+											argType: "number",
 											color : "black"
 										};
 										
@@ -136,6 +142,7 @@ function inicio()
 										comando: "generico",
 										opc: 0x01,
 										arg: [],
+										argType: "number",
 										color : "000000"
 									};
 									
@@ -155,6 +162,7 @@ function inicio()
 											comando: "generico",
 											opc: 0x30,
 											arg: [0x00,0x05],
+											argType: "number",
 											color : "black"
 										};
 										
@@ -172,6 +180,7 @@ function inicio()
 											comando: "generico",
 											opc: 0x30,
 											arg: [0x01,0x05],
+											argType: "number",
 											color : "black"
 										};
 										
@@ -191,6 +200,7 @@ function inicio()
 										comando: "generico",
 										opc: 0x30,
 										arg: [0x03,0x01],
+										argType: "number",
 										color : "black"
 									};
 									
@@ -227,6 +237,7 @@ function inicio()
 										comando: "generico",
 										opc: 0x40,
 										arg: [arg1,arg2],
+										argType: "number",
 										color : "black"
 									};
 									
@@ -248,6 +259,7 @@ function inicio()
 					comando: "generico",
 					opc: 0x41,
 					arg: [arg1,arg2],
+					argType: "number",
 					color : "black"
 				};
 				
@@ -269,6 +281,7 @@ function inicio()
 					comando: "generico",
 					opc: 0x41,
 					arg: [arg1,arg2],
+					argType: "number",
 					color : "black"
 				};
 				
@@ -292,6 +305,7 @@ function inicio()
 					comando: "generico",
 					opc: 0x30,
 					arg: [arg1,arg2],
+					argType: "number",
 					color : "black"
 				};
 				
@@ -312,6 +326,7 @@ function inicio()
 					comando: "generico",
 					opc: 0x31,
 					arg: [arg1,arg2],
+					argType: "number",
 					color : "black"
 				};
 				
@@ -333,6 +348,7 @@ function inicio()
 					comando: "generico",
 					opc: 0x31,
 					arg: [arg1,arg2],
+					argType: "number",
 					color : "black"
 				};
 				
@@ -352,6 +368,7 @@ function inicio()
 					comando: "generico",
 					opc: 0x60,
 					arg: [],
+					argType: "number",
 					color : "black"
 				};
 				
@@ -359,6 +376,45 @@ function inicio()
 				websocket.send(JSON.stringify(msg));
 				
 			});
+    
+    
+    $('#btnWriteDisplay').click(function()
+			{ 	
+    			
+		    	//cada input una linea, cada linea de beser completada con 20 caracteres,
+				//aunque sea caracteres en blanco o asteriscos
+    			//esta cadena depadding tienen intencionadamanete 20 asteriscos de relleno
+    			var pad = "********************";
+    			
+    			
+		    	var linea1 = $('#textLineaUno').val();
+		    	linea1= linea1 + pad.substring(0, pad.length - linea1.length);
+		    	$('#textLineaUno').val(linea1);
+		    	
+		    	var linea2 = $('#textLineaDos').val();
+		    	linea2= linea2 + pad.substring(0, pad.length - linea2.length);
+		    	$('#textLineaDos').val(linea2);
+		    	
+		    	
+    	        
+		    	var arg1 = linea1;
+		    	var arg2 = linea2;
+
+				var msg = 
+				{
+					tipo: "cmd",
+					comando: "generico",
+					opc: 0x11,
+					arg: arg1+arg2,
+					argType: "char",
+					color : "black"
+				};
+				
+				//convert and send data to server
+				websocket.send(JSON.stringify(msg));
+				
+			});
+    
     
 	/*
 	 * 
@@ -368,5 +424,91 @@ function inicio()
 	 * 
 	 * 
 	 */
+    
+    
+    function esTramaDigitalInput(trama)
+    {
+    	
+    	if(trama[1]+trama[2]=="60")
+    	{
+    		return true;
+    	}
+    	else
+    	{
+    		return false;
+    	}
+    	
+    }
+    
+    //--------------------------------------------------------
+    
+    function procesaTramaDigitalInput(trama)
+    {
+    	
+    	arg = trama[7]+trama[8];
+    
+
+    	var binary = parseInt(arg, 16).toString(2);
+    	
+    	var pad = "0000";
+    	binary= pad.substring(0, pad.length - binary.length) + binary ;
+    	
+    	
+    	
+    	if(binary[3] == "1")
+    	{
+    		activaCasillaDin(1);
+    	}
+    	else
+    	{
+    		desactivaCasillaDin(1);
+    	}	
+    	
+    	
+    	if(binary[2] == "1")
+    	{
+    		activaCasillaDin(2);
+    	}
+    	else
+    	{
+    		desactivaCasillaDin(2);
+    	}	
+    	
+    	
+    	if(binary[1] == "1")
+    	{
+    		activaCasillaDin(3);
+    	}
+    	else
+    	{
+    		desactivaCasillaDin(3);
+    	}	
+    	
+    	
+    	if(binary[0] == "1")
+    	{
+    		activaCasillaDin(4);
+    	}
+    	else
+    	{
+    		desactivaCasillaDin(4);
+    	}	
+    	
+    	
+    }
+    
+    //--------------------------------------------------------
+    
+    function activaCasillaDin(numeroCasilla)
+    {
+    	$('#casiDIN'+numeroCasilla).css( "background-color", "green" );
+    }
+    
+    //-----------------------------------------------------------
+    function desactivaCasillaDin(numeroCasilla)
+    {
+    	$('#casiDIN'+numeroCasilla).css( "background-color", "white" );
+    }
+    
     
 }
