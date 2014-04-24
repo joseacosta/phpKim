@@ -1,0 +1,6 @@
+{
+    "require": 
+    {
+        "react/Socket": "0.4.*"
+    }
+}

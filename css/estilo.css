@@ -1,0 +1,59 @@
+@CHARSET "ISO-8859-1";
+
+.envoltorio_monitor {
+	width: 800px;
+	margin-right: auto;
+	margin-left: auto;
+	background: #DDDDDD;
+	border: 1px solid #999999;
+	padding: 10px;
+	font: 12px 'lucida grande',tahoma,verdana,arial,sans-serif;
+}
+.envoltorio_monitor  .message_box {
+	background: #FFFFFF;
+	height: 150px;
+	overflow: auto;
+	padding: 10px;
+	border: 1px solid #999999;
+}
+.envoltorio_monitor  .panel input{
+	padding: 2px 2px 2px 5px;
+}
+.system_msg{color: #BDBDBD;font-style: italic;}
+.user_name{font-weight:bold;}
+.user_message{color: #88B6E0;}
+
+.grupoi, .grupod
+{
+	margin-top: 15px;
+	padding-top:15px; 
+	width: 370px;
+	height: 140px;
+	display: inline-block;
+}
+
+.grupoi
+{
+	float: left;
+}
+
+.grupod
+{
+	float: right;
+}
+
+.cleaner
+{
+	clear: both;	
+}
+
+
+.casilleroDIN
+{
+	width: 25px;
+	height: 30px;
+	border: 1px solid black;
+	display: inline-block;
+	background: white;
+}
+
