@@ -113,29 +113,17 @@ $socket->on('connection', function ($conn) use ($conns, $conex, $tramaCierraRele
 												    			
 												    		echo "\nusuario manda comando, opc:#".dechex($opc)."#, numArg:#".count($argumentos)."#\n";
 												    			
-												    		$arg="";
-												    			
-															//si se pretende pasar una cadena de carateres como argumentos
-															//asi esta bien, si no, hay que pasarle los numerosconcatenados,
-															//recibe valores decimales pro que el objeto que genera las tramas, al final los traduce de nuevo a hexa
+												    		
 												    		if($tipoArgumento == "char")
 												    		{
-												    			$arg = $argumentos;
+												    			//la coleccion de argumentos la tratamos como array, si 
+												    			//el tipo es char es que estamos recibiendo una cadena y no se trata exactamente igual
+												    			//la convertimos a array
+												    			$argumentos = str_split ($argumentos);
 												    		}	
-												    		else
-												    		{
-												    			foreach ($argumentos as $unarg)
-												    			{
-												    				//strval(dechex($opc));
-												    				$arg .= hexdec($unarg);
-												    			}
-												    		}
-												    		
-												    		
+
 												    			
-												    			
-												    			
-												    		$trama = $miKimal->createFrame($opc, $arg, $tipoArgumento);
+												    		$trama = $miKimal->createFrame($opc, $argumentos, $tipoArgumento);
 												    			
 												    			
 												    		echo "\n trama generada #".$trama."#\n";

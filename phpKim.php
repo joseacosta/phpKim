@@ -161,12 +161,15 @@ class KimalPHP
 		
 		//este es el NA!!!
 		//ajuste para que el hexadecimal se exprese con 4 char (un hexa de 16 bits, 4 cifras)
-		$length_hex = dechex(strlen($data));
+		$length_hex = dechex(count($data));
 		$length_hex = str_pad($length_hex, 4 , 0 , STR_PAD_LEFT);
 		
-		//echo "<br>la longitud en hexa del data,(NA)".$length_hex;
+		echo "<br>\nla longitud en hexa del data,(NA)".$length_hex;
+		echo "<br>\nlse hacalculado mirando el data (ARG):".$data;
 		
 		$data_hex = $this->byte_to_hex ($data,$argType);
+		
+		echo "<br>\neste es su valor en hex:".$data_hex;
 		
 		//echo "<br>el data en hexa...".$data_hex;
 		
@@ -201,7 +204,7 @@ class KimalPHP
 	{
         $data_hex = '';
         
-        for($x=0; $x < strlen($charBytes); $x++)
+        for($x=0; $x < count($charBytes); $x++)
         {
         	
         	if($argType == "char")
@@ -210,7 +213,7 @@ class KimalPHP
         	}
         	else 
         	{
-        		$dataNuevo = dechex( $charBytes[$x] );
+        		$dataNuevo = $charBytes[$x];
         	}
         		
         	$dataNuevo = str_pad($dataNuevo, 2 , 0 , STR_PAD_LEFT);

@@ -1,13 +1,27 @@
 @CHARSET "ISO-8859-1";
 
+body
+{
+	background-image: url("img/back1.jpg");
+	
+}
+
 .envoltorio_monitor {
 	width: 800px;
 	margin-right: auto;
 	margin-left: auto;
+	margin-top: 25px;
 	background: #DDDDDD;
+	background-image: url("img/linen-claro.png");
 	border: 1px solid #999999;
-	padding: 10px;
+	padding: 25px;
 	font: 12px 'lucida grande',tahoma,verdana,arial,sans-serif;
+	-webkit-box-shadow: 4px 4px 17px 0px rgba(50, 50, 50, 0.99);
+	-moz-box-shadow:    4px 4px 17px 0px rgba(50, 50, 50, 0.99);
+	box-shadow:         4px 4px 17px 0px rgba(50, 50, 50, 0.99);
+	-webkit-border-radius: 20px;
+	-moz-border-radius: 20px;
+	border-radius: 20px;
 }
 .envoltorio_monitor  .message_box {
 	background: #FFFFFF;
@@ -15,6 +29,9 @@
 	overflow: auto;
 	padding: 10px;
 	border: 1px solid #999999;
+	-webkit-border-radius: 7px;
+	-moz-border-radius: 7px;
+	border-radius: 7px;
 }
 .envoltorio_monitor  .panel input{
 	padding: 2px 2px 2px 5px;
@@ -57,3 +74,59 @@
 	background: white;
 }
 
+/*botones*/
+button
+{
+	-moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+	-webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+	box-shadow:inset 0px 1px 0px 0px #ffffff;
+	background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #ededed), color-stop(1, #dfdfdf) );
+	background:-moz-linear-gradient( center top, #ededed 5%, #dfdfdf 100% );
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#dfdfdf');
+	background-color:#ededed;
+	text-indent:0;
+	border:1px solid #dcdcdc;
+	display:inline-block;
+	color:#777777;
+	font-family:arial;
+	font-size:11px;
+	font-weight:bold;
+	font-style:normal;
+	height:25px;
+	line-height:20px;
+	width:150px;
+	text-decoration:none;
+	text-align:center;
+	text-shadow:1px 1px 0px #ffffff;
+	margin-bottom: 5px;
+}
+
+button:hover 
+{
+	background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #dfdfdf), color-stop(1, #ededed) );
+	background:-moz-linear-gradient( center top, #dfdfdf 5%, #ededed 100% );
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#dfdfdf', endColorstr='#ededed');
+	background-color:#dfdfdf;
+}
+
+button:active 
+{
+	position:relative;
+	top:1px;
+}
+
+
+
+/*input TEXT*/
+
+input[type=text]
+{ 
+    background: white; 
+    border: 1px solid #999999; 
+    border-radius: 5px; 
+    box-shadow: 0 0 5px #DDD inset; 
+    color: #666; 
+    height:18px; 
+    width: 200px; 
+} 
+ 

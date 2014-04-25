@@ -10,6 +10,7 @@
 	
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
 	<script src="js/script.js"></script>
+	
 	<link href="css/estilo.css" rel="stylesheet" type="text/css">
 	
 
@@ -79,6 +80,7 @@
 	            	Relay Time (00-FF):
 	            	<input type="text" id="relayTime"  maxlength="4"  />
 	            	
+	            	<br/><br/>
 	            	
 	            	<button id="btnActivateRelay">ActivateRelay</button>
 	            	
@@ -104,6 +106,7 @@
 	            	Out Time (00-FF):
 	            	<input type="text" id="outputTime"  maxlength="4"  />
 	            	
+	            	<br/><br/>
 	            	
 	            	<button id="btnActivateDigitalOut">ActivateDigitalOutput</button>
 	            	
@@ -128,7 +131,7 @@
 	            	Linea:
 	            	<input type="text" id="textLineaDos"  maxlength="20"  />
 	            	
-	            	<br/>
+	            	<br/><br/>
 	            	<button id="btnWriteDisplay">WriteDisplay</button>
 	            	<button id="btnClearDisplay">ClearDisplay</button>
 	            	
@@ -145,16 +148,16 @@
 	            <fieldset class="grupod">
 	            <legend>Digital Input</legend>
 	            
-	            	
-	            	<br/>
-	            	<div id='casiDIN1' class="casilleroDIN"></div>
-	            	<div id='casiDIN2' class="casilleroDIN"></div>
-	            	<div id='casiDIN3' class="casilleroDIN"></div>
-	            	<div id='casiDIN4' class="casilleroDIN"></div>
-	            	<br/>
-	            	<br/>
-	            	<button id="btnTXDigitalInput">TXDigitalInput</button>
-	            	
+	            	<center>
+		            	<br/>
+		            	<div id='casiDIN1' class="casilleroDIN"></div>
+		            	<div id='casiDIN2' class="casilleroDIN"></div>
+		            	<div id='casiDIN3' class="casilleroDIN"></div>
+		            	<div id='casiDIN4' class="casilleroDIN"></div>
+		            	<br/>
+		            	<br/>
+		            	<button id="btnTXDigitalInput">TXDigitalInput</button>
+	            	</center>
 	            	
 	            </fieldset>
 			
