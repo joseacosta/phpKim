@@ -8,7 +8,7 @@
 	
 	
 	
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+	<script src="js/jquery-2.1.1.min.js"></script>
 	<script src="js/script.js"></script>
 	
 	<link href="css/estilo.css" rel="stylesheet" type="text/css">

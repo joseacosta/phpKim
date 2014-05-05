@@ -54,47 +54,10 @@ class KimalPHP
 	abstract protected function OnDefault($data);
 
 */	
-	//-----------------------------------------------------
-	
-	
-	public function OpenPortTCP ($rAddress, $remotePort=1001)
-	{
-		
-		//crea conecta y pon a la escucha un socket con la electronica: IP:puerto
-	
-	}
 	
 	
 	
-	//----------------------------------------------------------
 	
-	public function ActivateDigitalOutput ($numout, $time)
-	{
-		
-		//vigila que la phase/estado sea el adecuada antes de continuar
-		
-		
-		if (numout < 0 || numout > 3 || time < 0 || time > 254)
-		{
-		 	echo 'numout o tiempo de digital output incorrecto';
-	        return false;
-		}
-		
-		#el 3 es un beeper interno, puedeque no acepte masde hex 0x19 decimas desegundo de pitido (25 decimas de segundo?)
-		if (numout == 3 and time > hexdec("19") )
-		{
-			echo 'problemas con el numout o con el numout 3 y tiempo excesivo';
-			return false;
-		}
-		
-		        
-		
-		$data = chr(numout) + chr(time);
-		
-		//opc 0x30 ojo que es hex
-		return $this->processCommand("30", data);
-	
-	}
 	
 	//---------------------------------------------------------------------
 	
@@ -164,12 +127,12 @@ class KimalPHP
 		$length_hex = dechex(count($data));
 		$length_hex = str_pad($length_hex, 4 , 0 , STR_PAD_LEFT);
 		
-		echo "<br>\nla longitud en hexa del data,(NA)".$length_hex;
-		echo "<br>\nlse hacalculado mirando el data (ARG):".$data;
+		//echo "<br>\nla longitud en hexa del data,(NA)".$length_hex;
+		//echo "<br>\nlse hacalculado mirando el data (ARG):".$data;
 		
 		$data_hex = $this->byte_to_hex ($data,$argType);
 		
-		echo "<br>\neste es su valor en hex:".$data_hex;
+		//echo "<br>\neste es su valor en hex:".$data_hex;
 		
 		//echo "<br>el data en hexa...".$data_hex;
 		
