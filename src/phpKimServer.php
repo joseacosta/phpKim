@@ -5,7 +5,6 @@ require_once 'phpKim.php';
 require __DIR__.'/../vendor/autoload.php';
 
 
-
 Class phpKimServer extends React\Socket\Server
 {
 	
@@ -14,11 +13,13 @@ Class phpKimServer extends React\Socket\Server
 	protected $conns;
 	protected $conexElectronica;
 	
-	protected $dirIPElectronica = "192.168.123.10";
-	protected $puertoElectronica= "1001";
+	protected $timeoutConnElectronica = 3;
 	
-	protected $ipLocal = '192.168.0.145';
-	protected $puertoEscucha = 10000;
+	public $dirIPElectronica;
+	public $puertoElectronica;
+	
+	public $ipLocal = '192.168.0.145';
+	public $puertoEscucha = 10000;
 	
 	
 	
@@ -37,20 +38,46 @@ Class phpKimServer extends React\Socket\Server
 		
 		$this->conns = new \SplObjectStorage();
 		
-		//stream que conecta con la electronica
-		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica);
-		//objeto react/connection que contiene el stream que conecto con la electronica
-		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
-		
-		//agregamos el socket de electronica a la coleccion
-		$this->conns->attach($this->conexElectronica);
-		
-		//llamamos a nuestra funcion de inicio de eventos
-		$this->iniciaEventos();
+
 	}
 
+	//--------------------------------------------------------------------------
+	
+	//el puerto de la electronica es por defecto el 1001
+	public function OpenPortTCP($dirIPElectronica, $puertoElectronica = "1001")
+	{
+		$this->dirIPElectronica = $dirIPElectronica;
+		$this->puertoElectronica = $puertoElectronica;
+		
+		//stream que conecta con la electronica, ojo al cuarto parametro que es el timeout para conectar
+		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
+		
+		//TODO aqui estaria bien establecer un timeout para lectura y escritura, echale un vistazo a stream_set_timeout()
+		
+		
+		if ($clientStreamElectronica === false) 
+		{
+			throw new UnexpectedValueException("Problema en la conexion con electronica, dir tcp://".$this->dirIPElectronica.":".$this->puertoElectronica."; msg: ".$errorMessage." errno: ".$errno);
+		}
+		
+		//objeto react/connection que contiene el stream que conecto con la electronica
+		//notese que le pasamos el mismo loop
+		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
+		
+		echo "\n\nConexion establecida con la electronica";
+		return true;
+	}
 	
 	//--------------------------------------------------------------------------
+	
+	public function ClosePort()
+	{
+		$this->conexElectronica->close();
+		
+		echo "\n\nfuncion closePort";
+	}
+	
+	//----------------------------------------------------------------------------
 	
 	
 	protected function iniciaEventos()
@@ -81,8 +108,10 @@ Class phpKimServer extends React\Socket\Server
 	
 	protected function onFinalizacionElectronica($conn)
 	{
-		echo "desconectada electronica, IP:".$conn->getRemoteAddress();
+		echo "\n\ndesconectada electronica, IP:".$conn->getRemoteAddress();
 	
+		//TODO muy posiblemente aqui habra que manejar un evento emulasndo la API de Kimaldi_Net
+		
 		//fuera referencia
 		$this->conexElectronica = null;
 	}
@@ -211,20 +240,16 @@ Class phpKimServer extends React\Socket\Server
 	public function Run()
 	{
 		
+		
+		
+		//llamamos a nuestra funcion de inicio de eventos
+		$this->iniciaEventos();
+		
 		//ojito que si no le pones ip del servidor en el que estamos como segundo parametro, SOLO funcionara en local
 		$this->listen($this->puertoEscucha, $this->ipLocal); 
 		
-		$exito = $this->miLoop->run();
-		
-		if($exito)
-		{
-			echo "Socket servidor con ip a la escucha en puerto.\n";
-		}
-		else 
-		{
-			echo "error loop->run";	
-		}
-		
+		return $this->miLoop->run();
+
 	}
 	
 	
@@ -365,8 +390,93 @@ Class phpKimServer extends React\Socket\Server
 		$conn->write($upgrade);
 	}
 	
+	
+	/*
+	 * 
+	 * 
+	 * 
+	 * 
+	 */
+	//-------------------------------------------------
+	
+	
+	public function HotReset()
+	{
+		$trama = $this->miKimal->tramaHotReset();
+		echo "\n enviando trama HotReset: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
+	//--------------------------------
+	
+	public function TestNodeLink()
+	{
+		$trama = $this->miKimal->tramaTestNodeLink();
+		echo "\n enviando trama TestNodeLink: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
+	//--------------------------------
+	
+	public function ActivateDigitalOutput($numOut, $tTime)
+	{
+		$trama = $this->miKimal->tramaActivateDigitalOutput( array($numOut, $tTime) );
+		echo "\n enviando trama ActivateDigitalOutput: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
+	//--------------------------------
+	
+	public function SwitchDigitalOutput($numOut, $mode)
+	{
+		//pordefecto hex 0x00, valor false
+		$hexMode= 0x00;
+		
+		if($mode)
+		{
+			$hexMode = 0x01;
+		}
+		
+		$trama = $this->miKimal->tramaSwitchDigitalOutput( array($numOut, $hexMode) );
+		echo "\n enviando trama SwitchDigitalOutput: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
 
-
-
+	//--------------------------------
+	
+	public function ActivateRelay($numRelay, $tTime)
+	{
+		$trama = $this->miKimal->tramaActivateRelay( array($numRelay, $tTime) );
+		echo "\n enviando trama ActivateRelay: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
+	//--------------------------------
+	
+	public function SwitchRelay($numRelay, $mode)
+	{
+		//pordefecto hex 0x00, valor false
+		$hexMode= 0x00;
+	
+		if($mode)
+		{
+			$hexMode = 0x01;
+		}
+	
+		$trama = $this->miKimal->tramaSwitchRelay( array($numRelay, $hexMode) );
+		echo "\n enviando trama SwitchRelay: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
+	//------------------------------------
+	
+	public function TxDigitalInput()
+	{
+		$trama = $this->miKimal->tramaTxDigitalInput();
+		echo "\n enviando trama TxDigitalInput: ".$trama;
+		$this->conexElectronica->write($trama);
+	}
+	
 
 }

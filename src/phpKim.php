@@ -83,7 +83,7 @@ class KimalPHP
 	
 	//---------------------------------------------------------------------
 	
-	function createFrame($opc, $data, $argType='number')
+	function createFrame($opc, $data=array(), $argType='number')
 	{ 
 		
 		
@@ -108,6 +108,7 @@ class KimalPHP
 		//echo "\n<br>crc en hexadecimal:".$crcHex;
 		
 		return $this->STX . $data_crc . $crcHex . $this->EXT;
+		
 	}
 	
 	
@@ -190,7 +191,70 @@ class KimalPHP
 	
 	//------------------------------------------------------------------------------------
 	
+	/*
+	 * 
+	 * 
+	 */
+	
+	
+	//-------------------------------------------------------------------------------------
+	
+	
+	function tramaHotReset()
+	{
+		$trama = $this->createFrame(0x01);
+		return $trama;
+	}
+	
+	//------------------------------------
+	
+	function tramaTestNodeLink()
+	{
+		$trama = $this->createFrame(0x00);
+		return $trama;
+	}
+	
+	//--------------------------------------
+	
+	function tramaActivateDigitalOutput($args)
+	{
+		$trama = $this->createFrame(0x30, $args);
+		return $trama;
+	}
+	
+	//--------------------------------------
+	
+	function tramaSwitchDigitalOutput($args)
+	{
+		$trama = $this->createFrame(0x31, $args);
+		return $trama;
+	}
+	
+	//--------------------------------------
+	
+	function tramaActivateRelay($args)
+	{
+		$trama = $this->createFrame(0x40, $args);
+		return $trama;
+	}
+	
+	//--------------------------------------
+	
+	function tramaSwitchRelay($args)
+	{
+		$trama = $this->createFrame(0x41, $args);
+		return $trama;
+	}
+	
+	//-----------------------------------------
 
+	
+	function tramaTxDigitalInput()
+	{
+		$trama = $this->createFrame(0x60);
+		return $trama;
+	}
+	
 	
 }
 
