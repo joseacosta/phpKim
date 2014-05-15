@@ -5,21 +5,33 @@ require_once 'phpKim.php';
 require __DIR__.'/../vendor/autoload.php';
 
 
-Class phpKimServer extends React\Socket\Server
+class phpKimServer extends React\Socket\Server
 {
 	
 	protected $miKimal;
 	protected $miLoop;
+	protected $timerTimeout;
 	protected $conns;
 	protected $conexElectronica;
 	
+	protected $opcColectEvent;
+	
+	protected  $conClienteActivoBloqueaRespuesta;
+	
 	protected $timeoutConnElectronica = 3;
+	protected $timeoutNodeTimeOut = 3;
+	
+	protected $peticionesEsperanRespuesta;
 	
 	public $dirIPElectronica;
 	public $puertoElectronica;
 	
 	public $ipLocal = '192.168.0.145';
-	public $puertoEscucha = 10000;
+	public $puertoEscucha = 12000;
+	
+	
+	public $electronicaConectada = false;
+	
 	
 	
 	
@@ -29,8 +41,14 @@ Class phpKimServer extends React\Socket\Server
 	{
 		$this->miLoop = React\EventLoop\Factory::create();
 		
+		
 		//constructor del padre 
 		parent::__construct($this->miLoop);
+		
+		$this->opcColectEvent=array("81" => "procesaOnTrack",
+							        "80" => "procesaOnKey",
+							        "60" => "procesaOnDigitalInput");
+		
 		
 		
 		//INSTANCIA de clase generadora de tramas protocolo Kimaldi
@@ -45,27 +63,29 @@ Class phpKimServer extends React\Socket\Server
 	
 	//el puerto de la electronica es por defecto el 1001
 	public function OpenPortTCP($dirIPElectronica, $puertoElectronica = "1001")
-	{
+	{	
+			
 		$this->dirIPElectronica = $dirIPElectronica;
 		$this->puertoElectronica = $puertoElectronica;
 		
 		//stream que conecta con la electronica, ojo al cuarto parametro que es el timeout para conectar
 		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
 		
-		//TODO aqui estaria bien establecer un timeout para lectura y escritura, echale un vistazo a stream_set_timeout()
+		//un timeout para lectura  cuando hacemos bloqueos leyendo uan respuesta de ella
+		stream_set_timeout($clientStreamElectronica, $this->timeoutNodeTimeOut);
 		
-		
-		if ($clientStreamElectronica === false) 
+		if ($clientStreamElectronica === false)
 		{
 			throw new UnexpectedValueException("Problema en la conexion con electronica, dir tcp://".$this->dirIPElectronica.":".$this->puertoElectronica."; msg: ".$errorMessage." errno: ".$errno);
 		}
 		
 		//objeto react/connection que contiene el stream que conecto con la electronica
-		//notese que le pasamos el mismo loop
+		//notese que le pasamos el mismo loop que para todas las conexiones, posibilita escuchar sus eventos derecepcion
 		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
 		
 		echo "\n\nConexion establecida con la electronica";
 		return true;
+		
 	}
 	
 	//--------------------------------------------------------------------------
@@ -74,18 +94,29 @@ Class phpKimServer extends React\Socket\Server
 	{
 		$this->conexElectronica->close();
 		
+		$this->conexElectronica = null;
+		
 		echo "\n\nfuncion closePort";
 	}
 	
 	//----------------------------------------------------------------------------
+	protected function onTickTimeOut()
+	{
+		//a verrr
+	}
+	//---------------------------------------------------------------------------
 	
 	
 	protected function iniciaEventos()
 	{
+		$this->timerTimeout = $this->miLoop->addPeriodicTimer(5, function(){ $this->onTickTimeOut(); });
 		
-		//manejador para evento on data de la conexion de electronica, datos y finalizacion
+	
+		//manejador para evento on data de la conexion de electronica
 		$this->conexElectronica->on('data', [$this,'onDataElectronica']);
+		//manejador para evento on end de la conexion de electronica
 		$this->conexElectronica->on('end', [$this, 'onFinalizacionElectronica']);
+		$this->conexElectronica->on('close', [$this, 'onFinalizacionElectronica']);
 		
 		
 		//manejador de evento del servidor en general, basicamente, evento de nueva conexion entrante
@@ -98,9 +129,20 @@ Class phpKimServer extends React\Socket\Server
 	
 	protected function onDataElectronica($data)
 	{
-		echo "\nevento de electronica localizado con data: ".$data."\n\n";
+		echo "\ntrama de electronica recibida con data: ".$data."\n\n";
 		
-		$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'Ans', 'message'=>$data, 'color'=>'black')));
+		$desgloseTrama = array();
+		
+		
+		//la electronica manda periodicamente una ack, ASCII 6
+		if (ord($data) != 6)
+		{
+			$desgloseTrama = $this->miKimal->desglosaTrama($data);
+			$this->evaluaEvento( $desgloseTrama["OPC"] , $desgloseTrama["ARG"]);
+		} 
+		
+		//TODO el metodo mandarTodosUsuarios() aqui llamado deberia ser el que hiciera el mask, estudialo, piensa en ponerle nombre "broadcast" o algo asi
+		$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'Ev', 'message'=>$data, 'color'=>'black')));
 		$this->mandarTodosUsuarios($mensaje_electronica); //send data
 	}
 	
@@ -110,7 +152,9 @@ Class phpKimServer extends React\Socket\Server
 	{
 		echo "\n\ndesconectada electronica, IP:".$conn->getRemoteAddress();
 	
-		//TODO muy posiblemente aqui habra que manejar un evento emulasndo la API de Kimaldi_Net
+		//TODO muy posiblemente aqui habra que manejar un evento emulando la API de Kimaldi_Net
+		
+		//$this->miLoop->stop();
 		
 		//fuera referencia
 		$this->conexElectronica = null;
@@ -131,7 +175,6 @@ Class phpKimServer extends React\Socket\Server
 		$connCliente->on('data',  [$this, 'onDataCliente']);
 		$connCliente->on('end',  [$this, 'onFinalizacionCliente']);
 	
-			
 	}
 		
 	//--------------------------------------------------------------------------
@@ -139,6 +182,10 @@ Class phpKimServer extends React\Socket\Server
 	
 	protected function onDataCliente($data, $connCliente)
 	{
+					//se guarda aqui el cliente que manda algo, si se produce (o no) una lectura de respuesta (se lee bloqueando)
+				    //se tendra registrado que conexion de cliente debe recibirla (en este punto no hay concurrencia).
+					//TODO evaluar si esta es la linea mas conveniente para hacerlo, si es necesario des-setearlo (=null) en algun momento            
+					$this->conClienteActivoBloqueaRespuesta = $connCliente;
 		
 					//al conectar un cliente, este evento ya salta, vamosa ver si esta mandando peticion de conexion websocket
 					if($this->mensajeEsDeApertura($data))
@@ -153,19 +200,19 @@ Class phpKimServer extends React\Socket\Server
 											
 					}
 							
-					echo $connCliente->getRemoteAddress().": escribio trama RAW:\n".$data."\n\n";
+					echo $connCliente->getRemoteAddress().": escribio trama WebSocket RAW:\n".$data."\n\n";
 							
 
 					$received_text = $this->unmask($data); //unmask data
 										
 							
-					echo $connCliente->getRemoteAddress().": escribio trama desenmascarada:\n".$received_text."\n\n";
+					echo $connCliente->getRemoteAddress().": escribio trama WebSocket desenmascarada:\n".$received_text."\n\n";
 							
 							
 					$tst_msg = json_decode($received_text); //json decode
 							
-					//el usuario manda un comando
-					if(isset($tst_msg->tipo) && $tst_msg->tipo == 'cmd')
+					//el usuario manda un frame codificado como json
+					if(isset($tst_msg->tipo) && $tst_msg->tipo == 'frame')
 					{
 							
 						$opc = $tst_msg->opc;
@@ -189,11 +236,7 @@ Class phpKimServer extends React\Socket\Server
 							
 						echo "\n trama generada #".$trama."#\n";
 							
-						//notifica que un usuario manda una trama puede joder la performance un poco
-						/*
-							$response = mask(json_encode(array('type'=>'system', 'message'=>$ip.' send->'.$trama)));
-							send_message($response);
-						*/
+						
 							
 						$this->manda_comando_electronica($trama);
 							
@@ -253,7 +296,7 @@ Class phpKimServer extends React\Socket\Server
 	}
 	
 	
-	//--------------------------------------------------------------------------
+	//---------------------------------------------------------------------------
 	
 	function mandarTodosUsuarios($msg) 
 	{
@@ -284,16 +327,64 @@ Class phpKimServer extends React\Socket\Server
 	}
 	//--------------------------------------------------------------------------
 	
-	function manda_comando_electronica($trama)
+	function manda_comando_electronica($trama, $opcRespuestaEsperado=null)
 	{
-	
+		
+
+
 		if ($this->conexElectronica == null)
 		{
+			//TODO La funcion que haya terminado llegando aqui (ej HotReset)
+			//debe acabar recibiendo y devolviendo (ambas) el valor 1 (=no se ha establecido canal de comunicacion)
+			
 			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no e sposible mandar tramas\n";
 			return;
 		}
 		
-		$this->conexElectronica->write($trama);
+		//sacamos el stream con el que hicimos, le obje conexion , estaria bien que fuera una porpiedad de clase
+		$streamElectronica = $this->conexElectronica->stream;
+		
+		
+		
+		stream_set_read_buffer($streamElectronica, 0);
+		stream_set_write_buffer($streamElectronica, 0);
+		
+		
+		//el metodo write del objeto COnnection nunca mandara mientras se quiera leer justo despues con bloqueo, 
+		//quizas use una especie de buffer, jugar set_stream_blocking() no resulta
+		//$this->conexElectronica->write($trama);
+		
+		//hay que sustituirla por el fwrite al stream directamenre
+		fwrite($streamElectronica, $trama);
+		
+		echo "\n mandada trama electronica, se procede a bloqueo esperando lectura...:";
+		
+		
+		//en estas condiciones la lectura del stream bloquea que es lo que queremos
+		$bufer = fread($streamElectronica, 4096);
+		
+		//ojo al array meta,a este stream al crearse EN OpenTCPPort se le puso un timeout de escritura
+		$meta = stream_get_meta_data($streamElectronica);
+		
+		if ($meta['timed_out'])
+		{
+			echo "\n\nTIMEOUT\n\n";
+			$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'Event', 'message'=>"TIMEOUT", 'color'=>'black')));
+		
+			//manejar la conn de cliente activo en cada momento es una decision importante, no deja de ser un solo hilo, y una iteracion del loop
+			//estamso aqui porque un cliente acabo llamando a esta funcion indirectamente, en el punto de entrada se ha guardado tal conexion
+			$this->conClienteActivoBloqueaRespuesta->write($mensaje_electronica);
+				
+		}
+		else
+		{
+			echo "\nlectura post-bloqueo!!!#".$bufer."#\n\n\n";
+			$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'AnsPers', 'message'=>$bufer, 'color'=>'black')));
+			$this->conClienteActivoBloqueaRespuesta->write($mensaje_electronica);
+		}
+		
+		
+		
 	
 	}
 	
@@ -390,10 +481,31 @@ Class phpKimServer extends React\Socket\Server
 		$conn->write($upgrade);
 	}
 	
+	//-------------------------------------------------------------------
 	
+	function evaluaEvento($opc, $arg)
+	{
+		
+		if( array_key_exists($opc, $this->opcColectEvent) )
+		{
+			//llamamos al metodo que tenga asociado el opc esta definido en el array $this->opcColectEvent
+			//con la siguiente estructura $this->opcColectEvent cadenaOpc => cadenaNombreMetodo
+			
+			$this->{$this->opcColectEvent[$opc]}($arg);
+		}
+		else 
+		{
+			echo "\nOPC \"".$opc."\" no incluido en lista de eventos reconocidos\n";
+		}
+		
+	}
+	
+	
+	
+	//------------------------------------------------
 	/*
 	 * 
-	 * 
+	 * METOODOS EMULANDO CLASE BIONET
 	 * 
 	 * 
 	 */
@@ -413,10 +525,12 @@ Class phpKimServer extends React\Socket\Server
 	{
 		$trama = $this->miKimal->tramaTestNodeLink();
 		echo "\n enviando trama TestNodeLink: ".$trama;
+	
 		$this->conexElectronica->write($trama);
 	}
 	
-	//--------------------------------
+	
+	//-------------------------------------
 	
 	public function ActivateDigitalOutput($numOut, $tTime)
 	{
@@ -478,5 +592,61 @@ Class phpKimServer extends React\Socket\Server
 		$this->conexElectronica->write($trama);
 	}
 	
+	
+	//------------------------------------------------
+	/*
+	 *
+	 * EVENTOS EMULANDO CLASE BioNet
+	 *
+	 *
+	 */
+	//-------------------------------------------------
+	
+	//implementar OnKey en la clase que hereda
+	private function procesaOnKey($arg)
+	{
+		$valorCaracter = hexdec( $arg );
+		$key = chr($valorCaracter);
+		
+		if ( method_exists($this, "OnKey") )
+			$this->OnKey($key);
+		else
+			echo "metodo OnKey lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//-----------------------------------------------------
+	
+	
+	//implementar OnTrack en la clase que hereda
+	private function procesaOnTrack($arg)
+	{
+		$track="";
+		
+		//notese el incremento de dos en dos
+		for($x=0 ; $x<strlen($arg) ; $x=$x+2 )
+		{
+			$valorCaracter = hexdec( substr($arg, $x, 2) );
+			$track .= chr($valorCaracter);
+		} 
+		
+		if ( method_exists($this, "OnTrack") )
+			$this->OnTrack($track);
+		else 
+			echo "metodo OnTrack lanzado, pero no esta definido ni implementado\n";
+		
+	}
+	
+	
+	//---------------------------------------------------------
+	
+	
+	//implementar OnTrack en la clase que hereda
+	private function procesaOnDigitalInput($arg)
+	{
+		if ( method_exists($this, "OnDigitalInput") )
+			$this->OnTrack($arg);
+		else
+			echo "metodo OnDigitalInput lanzado, pero no esta definido ni implementado\n";
+	}
 
 }

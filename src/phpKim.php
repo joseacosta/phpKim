@@ -191,6 +191,39 @@ class KimalPHP
 	
 	//------------------------------------------------------------------------------------
 	
+	
+	function desglosaTrama($trama)
+	{
+		
+		$stx = substr( $trama, 0, 1 );
+	
+		$opc = substr( $trama, 1, 2 );
+	
+		$na = substr( $trama, 3, 4 );
+		$valorNA = hexdec($na);
+	
+		$arg = substr( $trama, 7, $valorNA*2 );
+	
+		$crc = substr( $trama, -3, 2);
+		
+		$etx= substr( $trama, -1 );
+	
+	
+		echo "\n\nSTX =".$stx;
+		echo "\nOPC =".$opc;
+		echo "\nNA =".$na. " valor dec =".$valorNA;
+		echo "\nARG =".$arg;
+		echo "\nCRC =".$crc;
+		echo "\nETX =".$etx."\n\n";
+		
+		$tramaDesglosada = array("OPC" => $opc, "NA" => $na, "ARG" => $arg, "CRC" => $crc);
+		
+		return $tramaDesglosada;
+		
+	}
+	
+	//------------------------------------------------------------------------------
+	
 	/*
 	 * 
 	 * 

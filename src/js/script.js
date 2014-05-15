@@ -14,7 +14,7 @@ function inicio()
 	
 	
 	//objeto websoket.
-	var wsUri = "ws://192.168.0.145:10000"; 	
+	var wsUri = "ws://192.168.0.145:12000"; 	
 	websocket = new WebSocket(wsUri); 
 	
 	//ev conexion exitosa
@@ -113,7 +113,7 @@ function inicio()
 										
 										var msg = 
 										{
-											tipo: "cmd",
+											tipo: "frame",
 											comando: "generico",
 											opc: 0x40,
 											arg: [0x00,0x05],
@@ -138,7 +138,7 @@ function inicio()
 									
 									var msg = 
 									{
-										tipo: "cmd",
+										tipo: "frame",
 										comando: "generico",
 										opc: 0x01,
 										arg: [],
@@ -158,7 +158,7 @@ function inicio()
 										
 										var msg = 
 										{
-											tipo: "cmd",
+											tipo: "frame",
 											comando: "generico",
 											opc: 0x30,
 											arg: [0x00,0x05],
@@ -176,7 +176,7 @@ function inicio()
 										
 										var msg = 
 										{
-											tipo: "cmd",
+											tipo: "frame",
 											comando: "generico",
 											opc: 0x30,
 											arg: [0x01,0x05],
@@ -196,7 +196,7 @@ function inicio()
 									
 									var msg = 
 									{
-										tipo: "cmd",
+										tipo: "frame",
 										comando: "generico",
 										opc: 0x30,
 										arg: [0x03,0x01],
@@ -233,7 +233,7 @@ function inicio()
 									
 									var msg = 
 									{
-										tipo: "cmd",
+										tipo: "frame",
 										comando: "generico",
 										opc: 0x40,
 										arg: [arg1,arg2],
@@ -255,7 +255,7 @@ function inicio()
 				
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x41,
 					arg: [arg1,arg2],
@@ -277,7 +277,7 @@ function inicio()
 				
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x41,
 					arg: [arg1,arg2],
@@ -301,7 +301,7 @@ function inicio()
 				
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x30,
 					arg: [arg1,arg2],
@@ -322,7 +322,7 @@ function inicio()
 				
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x31,
 					arg: [arg1,arg2],
@@ -344,7 +344,7 @@ function inicio()
 				
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x31,
 					arg: [arg1,arg2],
@@ -364,7 +364,7 @@ function inicio()
 
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x60,
 					arg: [],
@@ -402,7 +402,7 @@ function inicio()
 
 				var msg = 
 				{
-					tipo: "cmd",
+					tipo: "frame",
 					comando: "generico",
 					opc: 0x11,
 					arg: arg1+arg2,
@@ -448,6 +448,7 @@ function inicio()
     	arg = trama[7]+trama[8];
     
 
+    	//parse int tomando cadenas de numeros en base 16, posteriormente tostring, traduciendo a cadenas representando numeros en base dos
     	var binary = parseInt(arg, 16).toString(2);
     	
     	var pad = "0000";

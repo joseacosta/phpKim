@@ -42,11 +42,6 @@
 				<br/>
 				<br/>
 				
-				<input type="text" name="comando" id="comando" placeholder="comando" maxlength="80" style="width:60%" />
-				<button id="send-cmd-btn">SendComando</button>
-				
-				<br/>
-				<br/>
 				
 				
 				<fieldset>
