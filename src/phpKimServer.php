@@ -16,6 +16,8 @@ class phpKimServer extends React\Socket\Server
 	
 	protected $opcColectEvent;
 	
+	protected $codColectMethodReturn;
+	
 	protected  $conClienteActivoBloqueaRespuesta;
 	
 	protected $timeoutConnElectronica = 3;
@@ -26,7 +28,8 @@ class phpKimServer extends React\Socket\Server
 	public $dirIPElectronica;
 	public $puertoElectronica;
 	
-	public $ipLocal = '192.168.0.145';
+	//public $ipLocal = '192.168.0.145';
+	public $ipLocal = '127.0.0.1';
 	public $puertoEscucha = 12000;
 	
 	
@@ -50,6 +53,14 @@ class phpKimServer extends React\Socket\Server
 							        "60" => "procesaOnDigitalInput");
 		
 		
+		$this->codColectMethodReturn=array("EJECUCION_OK" => 0,
+											"NO_CANAL_COM_ELECTRONICA" => 1,
+				                            "NO_SETUP_ELECTRONICA" => 2,
+											"OPC_RECHAZADO_ELECTRONICA" => 3,
+											"VALOR_PARAM_INCORRECTO" => 6,
+											"PUERTO_COM_YA_ABIERTO" => 251,
+											"ERR_APERTURA_PUERTO_COM" => 253);
+									
 		
 		//INSTANCIA de clase generadora de tramas protocolo Kimaldi
 		$this->miKimal = new KimalPHP();
@@ -99,17 +110,12 @@ class phpKimServer extends React\Socket\Server
 		echo "\n\nfuncion closePort";
 	}
 	
-	//----------------------------------------------------------------------------
-	protected function onTickTimeOut()
-	{
-		//a verrr
-	}
+
 	//---------------------------------------------------------------------------
 	
 	
 	protected function iniciaEventos()
 	{
-		$this->timerTimeout = $this->miLoop->addPeriodicTimer(5, function(){ $this->onTickTimeOut(); });
 		
 	
 		//manejador para evento on data de la conexion de electronica
@@ -141,8 +147,7 @@ class phpKimServer extends React\Socket\Server
 			$this->evaluaEvento( $desgloseTrama["OPC"] , $desgloseTrama["ARG"]);
 		} 
 		
-		//TODO el metodo mandarTodosUsuarios() aqui llamado deberia ser el que hiciera el mask, estudialo, piensa en ponerle nombre "broadcast" o algo asi
-		$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'Ev', 'message'=>$data, 'color'=>'black')));
+		$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Ev', 'message'=>$data, 'color'=>'black')));
 		$this->mandarTodosUsuarios($mensaje_electronica); //send data
 	}
 	
@@ -211,6 +216,12 @@ class phpKimServer extends React\Socket\Server
 							
 					$tst_msg = json_decode($received_text); //json decode
 							
+					//TODO aqui busca en la variable $received_text un cliente que se va cerrando el socket manda los caracteres ascii
+					//"♥Ú" por lo tanto ya no deberiamos seguir, se que el primer caracter es ascii 3 del segundo no se
+					//algo asi... if (ord($received_text[0]) == 3 && ord($received_text[1]) == ?)
+					
+					
+					
 					//el usuario manda un frame codificado como json
 					if(isset($tst_msg->tipo) && $tst_msg->tipo == 'frame')
 					{
@@ -243,20 +254,40 @@ class phpKimServer extends React\Socket\Server
 							
 							
 					}
-					
-					else //el usuario manda mensage normal (es solo texto plano)
+					//el usuario manda funcion para ser llamada por su nombre y array con argumentos
+					elseif (isset($tst_msg->tipo) && $tst_msg->tipo == 'func')
 					{
-							$ipRemitente =	$connCliente->getRemoteAddress();
+						$funcName = $tst_msg->funcName;
+						$argList = $tst_msg->args;
+						
+						if ( method_exists($this, $funcName) )
+						{	
+						    //**************************
+							call_user_func_array(array($this, $funcName), $argList);
+						}
+						else
+						{
+							echo "\nel cliente con ip: ".$connCliente->getRemoteAddress()." realiza llamada al metodo del servidor con nombre\"".$funcName."\" funcion INEXISTENTE\n";
+						}
+						
+					}
+					elseif (isset($tst_msg->tipo) && $tst_msg->tipo == 'userMsg')//el usuario manda mensage normal (es solo texto plano)
+					{
+						$ipRemitente =	$connCliente->getRemoteAddress();
 											
-							$user_name = $tst_msg->name; //sender name
-							$user_message = $tst_msg->message; //message text
-							$user_color = $tst_msg->color; //color
+						$user_name = $tst_msg->name; //sender name
+						$user_message = $tst_msg->message; //message text
+						$user_color = $tst_msg->color; //color
 							
-							$response_text = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>$ipRemitente, 'message'=>$user_message, 'color'=>$user_color)));
+						$response_text = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>$ipRemitente, 'message'=>$user_message, 'color'=>$user_color)));
 							
 											
-							$this->mandarTodosUsuarios($response_text, $ipRemitente);
+						$this->mandarTodosUsuarios($response_text, $ipRemitente);
 							
+					}
+					else 
+					{
+						echo "\nel cliente con ip: ".$connCliente->getRemoteAddress()." envio trama JSON sin formato adecuado (campo tipo)\n";
 					}
 					
 					
@@ -279,11 +310,8 @@ class phpKimServer extends React\Socket\Server
 	
 	//--------------------------------------------------------------------------
 	
-	
 	public function Run()
 	{
-		
-		
 		
 		//llamamos a nuestra funcion de inicio de eventos
 		$this->iniciaEventos();
@@ -293,6 +321,44 @@ class phpKimServer extends React\Socket\Server
 		
 		return $this->miLoop->run();
 
+	}
+	
+	//-------------------------------------------*****************
+	
+	function broadcastClientFunction($nombreFunc, $argList)
+	{
+		
+		$mensaje_broadcast_clientes = $this->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList )));
+		$this->mandarTodosUsuarios($mensaje_broadcast_clientes);
+
+	}
+	
+	//-------------------------------------------*****************
+	
+	function responseClientFunction($nombreFunc, $argList=array(), $ipClienteConcreto=null)
+	{
+		//preparamos JSON para llmar a func de cliente
+		$mensaje_response_cliente = $this->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList )));
+		
+		
+		if($ipClienteConcreto != null)
+		{
+			//TODO implementar funcion que busque entre las conexionse de cliente uno con la ip buscada (FACIL)
+		    //$cliente = $this->dameClientePorIP($ipClienteConcreto);
+		    //$cliente->write($mensaje_response_cliente);
+		}
+		elseif($this->conClienteActivoBloqueaRespuesta == null)
+		{
+			echo "\n no es posible responder a cliente que ocasiono bloqueo, no definido\n";
+			return;
+		}
+		else 
+		{
+			echo "\n response con valor".$mensaje_response_cliente."\n al cliente ".$this->conClienteActivoBloqueaRespuesta->getRemoteAddress()."\n";
+			$this->conClienteActivoBloqueaRespuesta->write($mensaje_response_cliente);
+		}
+		
+		
 	}
 	
 	
@@ -357,7 +423,7 @@ class phpKimServer extends React\Socket\Server
 		//hay que sustituirla por el fwrite al stream directamenre
 		fwrite($streamElectronica, $trama);
 		
-		echo "\n mandada trama electronica, se procede a bloqueo esperando lectura...:";
+		echo "\nMandada trama electronica, se procede a bloqueo esperando lectura...:";
 		
 		
 		//en estas condiciones la lectura del stream bloquea que es lo que queremos
@@ -366,21 +432,30 @@ class phpKimServer extends React\Socket\Server
 		//ojo al array meta,a este stream al crearse EN OpenTCPPort se le puso un timeout de escritura
 		$meta = stream_get_meta_data($streamElectronica);
 		
+		//*****************aqui se lanzaria el evento timeout se definiria en la clase heredera aqui habria un "procesaTimeOut()"
 		if ($meta['timed_out'])
 		{
 			echo "\n\nTIMEOUT\n\n";
-			$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'Event', 'message'=>"TIMEOUT", 'color'=>'black')));
+			$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Event', 'message'=>"TIMEOUT", 'color'=>'black')));
 		
 			//manejar la conn de cliente activo en cada momento es una decision importante, no deja de ser un solo hilo, y una iteracion del loop
 			//estamso aqui porque un cliente acabo llamando a esta funcion indirectamente, en el punto de entrada se ha guardado tal conexion
 			$this->conClienteActivoBloqueaRespuesta->write($mensaje_electronica);
-				
+			
+			//por devolver algo, estamos en timeout
+			return false;
 		}
-		else
+		else 
 		{
+			//***************** pues bien hay lectura post-bloqueo
+			//aqui se deberian ir mandando los eventos Ans... definirian en la clase heredera aqui habria un "procesaAns...()", antes, esta funcion propagara el valor 0
+			//a la funcion que la haya llamado
+			//si no se recibe ans con el opc esperado (un evento se entromete, puede ocurrir) ( p ej opc FF o FE) deberiamos devolver codigos numericos diferentes de 0
 			echo "\nlectura post-bloqueo!!!#".$bufer."#\n\n\n";
-			$mensaje_electronica = $this->mask(json_encode(array('type'=>'usermsg', 'name'=>'AnsPers', 'message'=>$bufer, 'color'=>'black')));
+			$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'AnsPers', 'message'=>$bufer, 'color'=>'black')));
 			$this->conClienteActivoBloqueaRespuesta->write($mensaje_electronica);
+			//******************* lo dicho arriba, vigila lo que devuelves, de momento devolvere un 0, todo OK
+			return $this->codColectMethodReturn["EJECUCION_OK"];
 		}
 		
 		
@@ -388,26 +463,6 @@ class phpKimServer extends React\Socket\Server
 	
 	}
 	
-	//--------------------------------------------------------------------------
-	//manda mensaje a todos los sockets clientes de la lista, evitandoelsocket de electronica
-	//recibe pues json codificado paraprotocolo ws
-	function send_message($msg)
-	{
-		echo "\n\n nos disponemos a mandar este mensaje:\n###".$msg."###\n";
-		global $clients;
-		
-		foreach($clients as $changed_socket)
-		{
-			if ($changed_socket == $this->socketElectronica)
-			{
-				echo "\n\n evitaremos mandar al socket electronica este mensaje:\n###".$msg."###\n";
-				continue;
-			}
-	
-			@socket_write($changed_socket,$msg,strlen($msg));
-		}
-		return true;
-	}
 	
 	//--------------------------------------------------------------------------
 	//desenmascara la trama websoket recibida
@@ -469,7 +524,7 @@ class phpKimServer extends React\Socket\Server
 	
 		$secKey = $headers['Sec-WebSocket-Key'];
 		
-		//la cadena que vemos arriba es una cadena mágica
+		//la cadena que vemos arriba es una cadena mÃ¡gica
 		$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
 		//hand shaking header
 		$upgrade  = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" .
@@ -491,7 +546,14 @@ class phpKimServer extends React\Socket\Server
 			//llamamos al metodo que tenga asociado el opc esta definido en el array $this->opcColectEvent
 			//con la siguiente estructura $this->opcColectEvent cadenaOpc => cadenaNombreMetodo
 			
-			$this->{$this->opcColectEvent[$opc]}($arg);
+			//$this->{$this->opcColectEvent[$opc]}($arg);
+			
+			$nombreFuncion = $this->opcColectEvent[$opc];
+			
+			//alternativamente para pasar parametros como array...
+			//call_user_func_array(array($this, "unaFuncion"), array("hola", "caracola"));
+			//**************************
+			call_user_func(array($this, $nombreFuncion), $arg);
 		}
 		else 
 		{
@@ -516,7 +578,11 @@ class phpKimServer extends React\Socket\Server
 	{
 		$trama = $this->miKimal->tramaHotReset();
 		echo "\n enviando trama HotReset: ".$trama;
-		$this->conexElectronica->write($trama);
+		//******************hacer el ->write directamente hace uqe perdamos TOoDO el control, usa la func manda_comando_electronica
+		//hazlo con todas las funciones de abajo, y claro propaga loq ue devuelva manda_comado_electronica() return...
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 	//--------------------------------
@@ -526,7 +592,9 @@ class phpKimServer extends React\Socket\Server
 		$trama = $this->miKimal->tramaTestNodeLink();
 		echo "\n enviando trama TestNodeLink: ".$trama;
 	
-		$this->conexElectronica->write($trama);
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 	
@@ -536,7 +604,10 @@ class phpKimServer extends React\Socket\Server
 	{
 		$trama = $this->miKimal->tramaActivateDigitalOutput( array($numOut, $tTime) );
 		echo "\n enviando trama ActivateDigitalOutput: ".$trama;
-		$this->conexElectronica->write($trama);
+		
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 	//--------------------------------
@@ -553,7 +624,9 @@ class phpKimServer extends React\Socket\Server
 		
 		$trama = $this->miKimal->tramaSwitchDigitalOutput( array($numOut, $hexMode) );
 		echo "\n enviando trama SwitchDigitalOutput: ".$trama;
-		$this->conexElectronica->write($trama);
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 
@@ -563,7 +636,9 @@ class phpKimServer extends React\Socket\Server
 	{
 		$trama = $this->miKimal->tramaActivateRelay( array($numRelay, $tTime) );
 		echo "\n enviando trama ActivateRelay: ".$trama;
-		$this->conexElectronica->write($trama);
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 	//--------------------------------
@@ -580,7 +655,9 @@ class phpKimServer extends React\Socket\Server
 	
 		$trama = $this->miKimal->tramaSwitchRelay( array($numRelay, $hexMode) );
 		echo "\n enviando trama SwitchRelay: ".$trama;
-		$this->conexElectronica->write($trama);
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 	//------------------------------------
@@ -589,7 +666,9 @@ class phpKimServer extends React\Socket\Server
 	{
 		$trama = $this->miKimal->tramaTxDigitalInput();
 		echo "\n enviando trama TxDigitalInput: ".$trama;
-		$this->conexElectronica->write($trama);
+		//-----------*******
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
 	}
 	
 	

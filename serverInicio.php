@@ -42,17 +42,40 @@ Class miServidorKimaldi extends phpKimServer
 		echo "\nEvento onKey lanzado!!! key:".$key;
 	}
 	
+	//--------------------------------------------------------
+	
+	function nuevaFuncion($argumento1, $argumento2)
+	{
+		
+		echo "\ncliente ha llamado a la funcion del servidor llamada nuevaFuncion!!! con argumentos:".$argumento1." y ".$argumento2;
+		
+		echo "\nllamaremos a un a funcion imitando a la API bioNet y veremos que devuelve\n";
+		
+		
+		$result = $this->TestNodeLink();
+		
+		echo "\nla devolucion fue el valor:".$result."\n";
+		
+		//devolvemos
+		echo "\nla tratamos de mandar json para el otro lado\n";
+		//JOYA############
+		$this->responseClientFunction( "funcionCliente", array("valorarg3", "valorarg4") );
+		
+	}
+	
+	
 }
 
 
 //-------------------------------------------------------------------------
 
-
+//instancia de la clase ya extendida
 $servKimaldi = new miServidorKimaldi();
 
 try 
 {
 	$servKimaldi->OpenPortTCP("192.168.123.10");
+	//$servKimaldi->OpenPortTCP("127.0.0.1");
 }
 catch ( UnexpectedValueException $e) 
 {

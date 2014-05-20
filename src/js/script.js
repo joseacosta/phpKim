@@ -14,7 +14,8 @@ function inicio()
 	
 	
 	//objeto websoket.
-	var wsUri = "ws://192.168.0.145:12000"; 	
+	//var wsUri = "ws://192.168.0.145:12000";
+	var wsUri = "ws://127.0.0.1:12000";
 	websocket = new WebSocket(wsUri); 
 	
 	//ev conexion exitosa
@@ -40,27 +41,44 @@ function inicio()
 	//#### Ev mensaje recibido via ws
 	websocket.onmessage =   function(ev) 
 							{
+		
 								var msg = JSON.parse(ev.data); //PHP sends Json data
-								var type = msg.type; //message type
-								var umsg = msg.message; //message text
-								var uname = msg.name; //user name
-								var ucolor = msg.color; //color
+								var tipo = msg.tipo; 
 								
-								if(esTramaDigitalInput(umsg))
-								{
-									procesaTramaDigitalInput(umsg);
-								}
 						
-								if(type == 'usermsg') 
+								//***
+								if(tipo == 'userMsg') 
 								{
+									var umsg = msg.message; //mensaje en si
+									var uname = msg.name; //concepto del mensaje
+									var ucolor = msg.color; //color
+									
 									$('#message_box').append("<div><span class=\"user_name\" style=\"color:#"+ucolor+"\">"+uname+"</span> : <span class=\"user_message\">"+umsg+"</span></div>");
+								
+
+									if(esTramaDigitalInput(umsg))
+									{
+										procesaTramaDigitalInput(umsg);
+									}
+									
 								}
-								if(type == 'system')
+								if(tipo == 'func')
+								{
+									var funcName = msg.funcName;
+									var args = msg.args;
+									
+									alert("recibido del servidor que llama a la funcion llamada "+funcName+"y con "+args.length+" argumentos");
+								}	
+								if(tipo == 'debugMsg')//TODO un interesantisimo recurso para el debug...
+								{
+									$('#message_box').append("<div class=\"system_msg\">"+umsg+"</div>");
+								}
+								if(tipo == 'system')
 								{
 									$('#message_box').append("<div class=\"system_msg\">"+umsg+"</div>");
 								}
 						
-							     $('#message_box').scrollTop($('#message_box').prop("scrollHeight"));		
+							    $('#message_box').scrollTop($('#message_box').prop("scrollHeight"));		
 						
 								$('#message').val(''); //reset text
 							};
@@ -415,6 +433,22 @@ function inicio()
 				
 			});
     
+    
+    //------------------------
+    $('#test-protocolo').click(function()
+			{ 	
+    	
+				var msg = 
+				{
+					tipo: "func",
+					funcName: "nuevaFuncion",
+					args: ["unacadena", 27]
+				};
+				
+				//convert and send data to server
+				websocket.send(JSON.stringify(msg));
+				
+			});
     
 	/*
 	 * 
