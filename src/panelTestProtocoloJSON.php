@@ -21,7 +21,13 @@
 
 $(document).ready(	function()
 {
-	//inicio();
+	cliente = new miClase();
+	//cliente2 = new miClase();
+	
+	cliente.connectServerWs("127.0.0.1", "12000");
+	//cliente2connectServerWs("127.0.0.1", "12000");
+	
+	cliente.registerButtonClickHandlerByName("test-protocolo", "handlerBoton");
 });
 </script>
 
@@ -45,6 +51,32 @@ $(document).ready(	function()
 <br/>
 
 <button id="test-protocolo">test Protocolo KimJSON</button>
+
+<br/>
+<br/>
+
+<fieldset>
+
+	            <legend>Digital Input</legend>
+	            
+	            	<center>
+		            	<br/>
+		            	<div id='casiDIN1' class="casilleroDIN"></div>
+		            	<div id='casiDIN2' class="casilleroDIN"></div>
+		            	<div id='casiDIN3' class="casilleroDIN"></div>
+		            	<div id='casiDIN4' class="casilleroDIN"></div>
+		            	<br/>
+		            	<br/>
+		            	<button id="btnTXDigitalInput">TXDigitalInput</button>
+	            	</center>
+	            	
+</fieldset>
+
+
+</div>
+
+
+</div>
 
 
 </body>

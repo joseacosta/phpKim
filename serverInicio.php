@@ -35,8 +35,17 @@ Class miServidorKimaldi extends phpKimServer
 		
 		
 	}
+	//--------------------------------------------------------
+	//override metodo de evento
+	function OnDigitalInputBoolean($din1, $din2, $din3, $din4)
+	{
+		echo "\nEvento OnDigitalInputBoolean lanzado!!!\n";
+		
+		$this->responseClientFunction( "manejaEventoDin", array($din1, $din2, $din3, $din4) );
+	}
 	
-	//override metodo
+	//--------------------------------------------------------
+	//override metodo de evento
 	function OnKey($key)
 	{
 		echo "\nEvento onKey lanzado!!! key:".$key;
@@ -52,7 +61,7 @@ Class miServidorKimaldi extends phpKimServer
 		echo "\nllamaremos a un a funcion imitando a la API bioNet y veremos que devuelve\n";
 		
 		
-		$result = $this->TestNodeLink();
+		$result = $this->ActivateRelay(1, 1);
 		
 		echo "\nla devolucion fue el valor:".$result."\n";
 		

@@ -20,7 +20,7 @@ class phpKimServer extends React\Socket\Server
 	
 	protected  $conClienteActivoBloqueaRespuesta;
 	
-	protected $timeoutConnElectronica = 3;
+	protected $timeoutConnElectronica = 7;
 	protected $timeoutNodeTimeOut = 3;
 	
 	protected $peticionesEsperanRespuesta;
@@ -83,11 +83,15 @@ class phpKimServer extends React\Socket\Server
 		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
 		
 		//un timeout para lectura  cuando hacemos bloqueos leyendo uan respuesta de ella
+		//esta funcion produce BLOQUEO
 		stream_set_timeout($clientStreamElectronica, $this->timeoutNodeTimeOut);
 		
+		//TODO,que tal si aqui lanzamos un evento como el nodeTimeOut pero que sea de establecimiento y no de tiempo de respuesta superado
 		if ($clientStreamElectronica === false)
 		{
 			throw new UnexpectedValueException("Problema en la conexion con electronica, dir tcp://".$this->dirIPElectronica.":".$this->puertoElectronica."; msg: ".$errorMessage." errno: ".$errno);
+			//tras la excepcion nada sigue
+			return;
 		}
 		
 		//objeto react/connection que contiene el stream que conecto con la electronica
@@ -116,7 +120,11 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function iniciaEventos()
 	{
-		
+		if ($this->conexElectronica == null)
+		{
+			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible inicializar sus eventos\n";
+			return;
+		}
 	
 		//manejador para evento on data de la conexion de electronica
 		$this->conexElectronica->on('data', [$this,'onDataElectronica']);
@@ -338,7 +346,7 @@ class phpKimServer extends React\Socket\Server
 	function responseClientFunction($nombreFunc, $argList=array(), $ipClienteConcreto=null)
 	{
 		//preparamos JSON para llmar a func de cliente
-		$mensaje_response_cliente = $this->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList )));
+		$mensaje_response_cliente = $this->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
 		
 		
 		if($ipClienteConcreto != null)
@@ -401,7 +409,7 @@ class phpKimServer extends React\Socket\Server
 		if ($this->conexElectronica == null)
 		{
 			//TODO La funcion que haya terminado llegando aqui (ej HotReset)
-			//debe acabar recibiendo y devolviendo (ambas) el valor 1 (=no se ha establecido canal de comunicacion)
+			//debe acabar recibiendo y devolviendo (ambas cosas) el valor 1 ( quecorresponde a "no se ha establecido canal de comunicacion")
 			
 			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no e sposible mandar tramas\n";
 			return;
@@ -719,13 +727,53 @@ class phpKimServer extends React\Socket\Server
 	//---------------------------------------------------------
 	
 	
-	//implementar OnTrack en la clase que hereda
+	//implementar OnDigitalInput en la clase que hereda
 	private function procesaOnDigitalInput($arg)
 	{
 		if ( method_exists($this, "OnDigitalInput") )
-			$this->OnTrack($arg);
+			$this->OnDigitalInput($arg);
 		else
 			echo "metodo OnDigitalInput lanzado, pero no esta definido ni implementado\n";
+		
+		
+
+		 
+		//coscha propia, he ideado otro manejador de evento (alternativo) mucho mas comodo
+		if ( method_exists($this, "OnDigitalInputBoolean") )
+		{
+			
+			$numDecimal = hexdec($arg);
+			$stringBinario = decbin($numDecimal);
+			$stringBinario = str_pad($stringBinario, 4, "0", STR_PAD_LEFT);
+			
+			$din1 = $din2 = $din3 = $din4 = false;
+			
+			if($stringBinario[3] == "1")
+			{
+				$din1 = true;
+			}
+			if($stringBinario[2] == "1")
+			{
+				$din2 = true;
+			}
+			if($stringBinario[1] == "1")
+			{
+				$din3 = true;
+			}
+			if($stringBinario[0] == "1")
+			{
+				$din4 = true;
+			}
+			
+			$this->OnDigitalInputBoolean($din1, $din2, $din3, $din4);
+		}	
+		else
+			echo "metodo OnDigitalInputBoolean lanzado, pero no esta definido ni implementado\n";
+		
+		
 	}
+	
+	
+	
 
 }

@@ -6,7 +6,9 @@ function jsKimClient()
 	
 	this.conectado = false;
 	
-	//-------------------------------------------------------------------
+	
+
+	//------------------------------------------------------------------
 	
 	this.connectServerWs = function(dir, puerto)
 	{   
@@ -29,8 +31,8 @@ function jsKimClient()
 		}
 		
 		
-		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error ConexiÃ³n ws - "+ev.data+"</div>");}; 
-		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada</div>");}; 
+		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error ConexiÃ³n ws - "+ev.data+"</div>"); that.conectado = false}; 
+		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada</div>"); that.conectado = false}; 
 		this.websocket.onmessage = function(ev){ that.onServerMessage.call(that, ev); };
 	}
 	
@@ -58,12 +60,13 @@ function jsKimClient()
 		{
 			var funcName = msg.funcName;
 			var args = msg.args;
+			var serverIp= msg.server;
 			
-			alert("recibido del servidor que llama a la funcion llamada "+funcName+" y con "+args.length+" argumentos");
+			//alert("recibido, el servidor "+serverIp+", llama a la funcion con nombre "+funcName+" pasando "+args.length+" argumentos");
 			
 			this.callPorNombre(funcName, args);
 		}	
-		else if(tipo == 'debugMsg')//TODO un interesantisimo recurso para el debug proveninete del serividor en un div...
+		else if(tipo == 'debugMsg')//TODO un interesantisimo recurso para el debug proveninete del servidor en un div...
 		{
 			//TODO DEPENDIENTE DE HTML INSERTAR MEJOR NUEVO DIV DE DEBUG AL PRINCIPIO SI NO EXISTE!!!
 			$('#message_debug').append("<div class=\"system_msg\">"+umsg+"</div>");
@@ -87,21 +90,64 @@ function jsKimClient()
 	
 	//-------------------------------------------------------------------
 	//se le pasa el id de un boton html y se vincula con una funcion que hayamos implementado en la clase
-	this.registerButtonClickHandler = function(idBoton, funcion)
+	this.registerButtonClickHandlerByName = function(idBoton, nombreFunc)
 	{
-		if (typeof funcion != "function")
+		var laFuncion = this[nombreFunc];
+		
+		if (typeof laFuncion != "function")
 		{
-			alert(" El handler de click no parece ser una funcion válida (llamada registerButtonClickHandler, clase: "+this.constructor.name+")");
+			alert(" El nombre "+nombreFunc+" no parece pertenecer ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
 			return false;
 		}
 		
-		//a partir de aqui.. con jquery ya harias el onclick...
+		if($('#'+idBoton).length == 0)
+		{
+			alert ("elemento con id \""+idBoton+"\" inexistente, o todavia no cargado");
+			return false
+		}
+		if($('#'+idBoton).length > 1)
+		{
+			alert ("elementos con id \""+idBoton+"\" existe duplicidad en el uso de id, debería ser único");
+			return false
+		}
+		
+		that = this
+		sender = $('#'+idBoton);
+		
+		$('#'+idBoton).click( function(){ laFuncion.call(that, sender); } );
+	}
+	
+	//-------------------------------------------------------------------
+	this.registerButtonClickHandler = function(idBoton, laFuncion)
+	{
+		
+		if (typeof laFuncion != "function")
+		{
+			alert(" El handler de click con no parece ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
+			return false;
+		}
+		
+		if($('#'+idBoton).length == 0)
+		{
+			alert ("elemento con id \""+idBoton+"\" inexistente, o todavia no cargado");
+			return false
+		}
+		if($('#'+idBoton).length > 1)
+		{
+			alert ("elementos con id \""+idBoton+"\" existe duplicidad en el uso de id, debería ser único");
+			return false
+		}
+		
+		that = this
+		sender = $('#'+idBoton);
+		
+		$('#'+idBoton).click( function(){ laFuncion.call(that, sender); } );
 	}
 	
 	//-------------------------------------------------------------------
 	
 	this.callFuncServer = function(funcServerName, args)
-	{console.log(this);
+	{
 		if(!this.conectado)
 		{
 			alert("err. cliente no conectado con el servidor ws (llamada callFuncServer, clase: "+this.constructor.name+")");
@@ -158,33 +204,81 @@ jsKimClient.extender = function($heredera)
 
 
 
-
-
 //testtesttesttesttesttesttesttesttesttesttest-------------------------
 
+//herencia#################
 jsKimClient.extender(miClase);
 
 function miClase()
 {
 	
-	//that = this;
-	//codigo aqui es como si fuera en el constructor
-	//this.connectServerWs("echo.websocket.org", "80")//nada
-	this.funcionCliente = function()
+	
+	this.funcionCliente = function(arg1, arg2)
 	{
-		alert("aqui estoy y tengo argumentos");
+		alert("aqui estoy y tengo argumentos uno:"+arg1+" y otro:"+arg2);
 	}
+	//--------
+	
+	this.handlerBoton = function(sender)
+	{
+		this.callFuncServer("nuevaFuncion", ["cosa", 0.5]);
+	}
+	
+	//----------
+	
+//--------
+	
+	this.handlerBotonAlternativa = function(sender)
+	{
+		this.callFuncServer("nuevaFuncion", ["cosa", 0.5]);
+	}
+	
+	//--------
+	
+	this.manejaEventoDin = function(din1, din2, din3, din4)
+	{
+		//alert("evento entradas digitales:"+din1+din2+din3+din4);
+		
+		if(din1)
+			this.activaCasillaDin(1);
+    	else
+    		this.desactivaCasillaDin(1);
+    	
+    	if(din2)
+    		this.activaCasillaDin(2);
+    	else
+    		this.desactivaCasillaDin(2);
+    	
+    	if(din3)
+    		this.activaCasillaDin(3);
+    	else
+    		this.desactivaCasillaDin(3);
+    	
+    	if(din4)
+    		this.activaCasillaDin(4);
+    	else
+    		this.desactivaCasillaDin(4);
+    	
+	}
+	
+	//--------
+	this.activaCasillaDin = function(numeroCasilla)
+	{
+	    $('#casiDIN'+numeroCasilla).css( "background-color", "green" );
+	}
+	//-------
+	this.desactivaCasillaDin = function(numeroCasilla)
+	{
+	    $('#casiDIN'+numeroCasilla).css( "background-color", "white" );
+	}
+	
+	
 	
 }
 
-cliente = new miClase();
 
 
 
-cliente.connectServerWs("127.0.0.1", "12000");
-
-//tiempo para que se conecte...
-setTimeout(function(){cliente.callFuncServer("nuevaFuncion", ["algo", "otra cosa"]); }, 3000);
 
 
 
