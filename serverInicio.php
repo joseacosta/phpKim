@@ -61,7 +61,7 @@ Class miServidorKimaldi extends phpKimServer
 		echo "\nllamaremos a un a funcion imitando a la API bioNet y veremos que devuelve\n";
 		
 		
-		$result = $this->ActivateRelay(1, 1);
+		$result = $this->ActivateRelay(3, 1);
 		
 		echo "\nla devolucion fue el valor:".$result."\n";
 		
@@ -81,16 +81,14 @@ Class miServidorKimaldi extends phpKimServer
 //instancia de la clase ya extendida
 $servKimaldi = new miServidorKimaldi();
 
-try 
-{
-	$servKimaldi->OpenPortTCP("192.168.123.10");
-	//$servKimaldi->OpenPortTCP("127.0.0.1");
-}
-catch ( UnexpectedValueException $e) 
-{
-	echo "\n\nEXCEP CAPTURADA APERTURA TCP___:".$e."\n";	
+
+//conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
+$valorconexion = $servKimaldi->OpenPortTCP("192.168.123.10");
+//$servKimaldi->OpenPortTCP("127.0.0.1");
 	
-}
+echo "\nvalor de conexin devuelto por openporttcp:".$valorconexion."\n";
+
+
 
 
 //loop sin fin

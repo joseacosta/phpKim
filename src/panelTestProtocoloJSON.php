@@ -22,12 +22,15 @@
 $(document).ready(	function()
 {
 	cliente = new miClase();
-	//cliente2 = new miClase();
+	cliente2 = new miClase();
 	
 	cliente.connectServerWs("127.0.0.1", "12000");
-	//cliente2connectServerWs("127.0.0.1", "12000");
+	cliente2.connectServerWs("192.168.0.149", "12000");
+
 	
 	cliente.registerButtonClickHandlerByName("test-protocolo", "handlerBoton");
+
+	cliente2.registerButtonClickHandler("test-protocolo2", cliente2.handlerBoton);
 });
 </script>
 
@@ -51,6 +54,8 @@ $(document).ready(	function()
 <br/>
 
 <button id="test-protocolo">test Protocolo KimJSON</button>
+
+<button id="test-protocolo2">test Protocol KimJSON2</button>
 
 <br/>
 <br/>

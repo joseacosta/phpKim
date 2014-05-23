@@ -65,6 +65,8 @@ class phpKimServer extends React\Socket\Server
 		//INSTANCIA de clase generadora de tramas protocolo Kimaldi
 		$this->miKimal = new KimalPHP();
 		
+	
+		
 		$this->conns = new \SplObjectStorage();
 		
 
@@ -75,7 +77,12 @@ class phpKimServer extends React\Socket\Server
 	//el puerto de la electronica es por defecto el 1001
 	public function OpenPortTCP($dirIPElectronica, $puertoElectronica = "1001")
 	{	
-			
+		//la conexion con la electronica ya esta abierta, debe cerrarse primero la conexion
+		if($this->conexElectronica != null)
+		{
+			return $this->codColectMethodReturn["PUERTO_COM_YA_ABIERTO"];
+		}
+		
 		$this->dirIPElectronica = $dirIPElectronica;
 		$this->puertoElectronica = $puertoElectronica;
 		
@@ -89,9 +96,8 @@ class phpKimServer extends React\Socket\Server
 		//TODO,que tal si aqui lanzamos un evento como el nodeTimeOut pero que sea de establecimiento y no de tiempo de respuesta superado
 		if ($clientStreamElectronica === false)
 		{
-			throw new UnexpectedValueException("Problema en la conexion con electronica, dir tcp://".$this->dirIPElectronica.":".$this->puertoElectronica."; msg: ".$errorMessage." errno: ".$errno);
-			//tras la excepcion nada sigue
-			return;
+			//devolvemos codigo de error de apertura de comunicacion
+			return $this->codColectMethodReturn["ERR_APERTURA_PUERTO_COM"];
 		}
 		
 		//objeto react/connection que contiene el stream que conecto con la electronica
@@ -99,7 +105,8 @@ class phpKimServer extends React\Socket\Server
 		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
 		
 		echo "\n\nConexion establecida con la electronica";
-		return true;
+		
+		return $this->codColectMethodReturn["EJECUCION_OK"];
 		
 	}
 	
@@ -120,6 +127,10 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function iniciaEventos()
 	{
+		//manejador de evento del servidor en general, basicamente, evento de nueva conexion entrante
+		$this->on('connection', [$this,'onConexionEntrante']);
+		
+		
 		if ($this->conexElectronica == null)
 		{
 			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible inicializar sus eventos\n";
@@ -128,14 +139,12 @@ class phpKimServer extends React\Socket\Server
 	
 		//manejador para evento on data de la conexion de electronica
 		$this->conexElectronica->on('data', [$this,'onDataElectronica']);
-		//manejador para evento on end de la conexion de electronica
-		$this->conexElectronica->on('end', [$this, 'onFinalizacionElectronica']);
+		//$this->conexElectronica->on('error', [$this, 'onErrorConexionElectronica']);
 		$this->conexElectronica->on('close', [$this, 'onFinalizacionElectronica']);
 		
+		//$this->conexElectronica->on('end', [$this,'onFinalizacionElectronica']);
 		
-		//manejador de evento del servidor en general, basicamente, evento de nueva conexion entrante
-		$this->on('connection', [$this,'onConexionEntrante']);
-		
+			
 		
 	}
 	
@@ -165,14 +174,28 @@ class phpKimServer extends React\Socket\Server
 	{
 		echo "\n\ndesconectada electronica, IP:".$conn->getRemoteAddress();
 	
-		//TODO muy posiblemente aqui habra que manejar un evento emulando la API de Kimaldi_Net
+		$this->procesaTCPClose();
 		
+		//la vida puede seguir...
 		//$this->miLoop->stop();
 		
 		//fuera referencia
 		$this->conexElectronica = null;
 	}
 	
+	
+	//--------------------------------------------------------------------------
+	
+	protected function onErrorConexionElectronica($error)
+	{
+		echo "\n\nerror TCP:";
+		var_dump($error);
+	
+		$this->procesaTCPError($error);
+	
+		//fuera referencia
+		$this->conexElectronica = null;
+	}
 	
 	//--------------------------------------------------------------------------
 	
@@ -195,8 +218,9 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function onDataCliente($data, $connCliente)
 	{
-					//se guarda aqui el cliente que manda algo, si se produce (o no) una lectura de respuesta (se lee bloqueando)
-				    //se tendra registrado que conexion de cliente debe recibirla (en este punto no hay concurrencia).
+					//se guarda aqui el cliente que manda algo, dado que al final el I/O acaba en un unico proceso, aqui van todo sen orden y en fila
+					//siempre que se quiera responder solo al cliente conreto se podra si se produce (o no) una lectura de respuesta (se lee bloqueando)
+				    //se consigue asi sincronica en la comunicacion con la electronica (gracias al bloqueo)
 					//TODO evaluar si esta es la linea mas conveniente para hacerlo, si es necesario des-setearlo (=null) en algun momento            
 					$this->conClienteActivoBloqueaRespuesta = $connCliente;
 		
@@ -224,8 +248,8 @@ class phpKimServer extends React\Socket\Server
 							
 					$tst_msg = json_decode($received_text); //json decode
 							
-					//TODO aqui busca en la variable $received_text un cliente que se va cerrando el socket manda los caracteres ascii
-					//"♥Ú" por lo tanto ya no deberiamos seguir, se que el primer caracter es ascii 3 del segundo no se
+					//TODO aqui busca en la variable $received_text un cliente que se va (cerrando el socket) manda los caracteres ascii
+					//03 seguido de alg�n otro por lo tanto ya no deberiamos seguir, se que el primer caracter es ascii 3 del segundo no se
 					//algo asi... if (ord($received_text[0]) == 3 && ord($received_text[1]) == ?)
 					
 					
@@ -411,8 +435,8 @@ class phpKimServer extends React\Socket\Server
 			//TODO La funcion que haya terminado llegando aqui (ej HotReset)
 			//debe acabar recibiendo y devolviendo (ambas cosas) el valor 1 ( quecorresponde a "no se ha establecido canal de comunicacion")
 			
-			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no e sposible mandar tramas\n";
-			return;
+			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible mandar tramas\n";
+			return $this->codColectMethodReturn["NO_CANAL_COM_ELECTRONICA"];
 		}
 		
 		//sacamos el stream con el que hicimos, le obje conexion , estaria bien que fuera una porpiedad de clase
@@ -434,39 +458,63 @@ class phpKimServer extends React\Socket\Server
 		echo "\nMandada trama electronica, se procede a bloqueo esperando lectura...:";
 		
 		
-		//en estas condiciones la lectura del stream bloquea que es lo que queremos
+		//en estas condiciones la lectura del stream PRODUCE BLOQUEO que es lo que queremos
 		$bufer = fread($streamElectronica, 4096);
 		
 		//ojo al array meta,a este stream al crearse EN OpenTCPPort se le puso un timeout de escritura
 		$meta = stream_get_meta_data($streamElectronica);
 		
-		//*****************aqui se lanzaria el evento timeout se definiria en la clase heredera aqui habria un "procesaTimeOut()"
+		//*****************aqui se lanzaria el evento timeout se definiria e implementara en la clase heredera aqui habria un "procesaTimeOut()"
 		if ($meta['timed_out'])
 		{
 			echo "\n\nTIMEOUT\n\n";
 			$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Event', 'message'=>"TIMEOUT", 'color'=>'black')));
 		
-			//manejar la conn de cliente activo en cada momento es una decision importante, no deja de ser un solo hilo, y una iteracion del loop
-			//estamso aqui porque un cliente acabo llamando a esta funcion indirectamente, en el punto de entrada se ha guardado tal conexion
-			$this->conClienteActivoBloqueaRespuesta->write($mensaje_electronica);
+			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso
+			$mensaje_debug= $this->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>" NodeTimeOut")));
+			$this->conClienteActivoBloqueaRespuesta->write($mensaje_debug);
 			
-			//por devolver algo, estamos en timeout
-			return false;
+			//kimaldi_net no parece tener ningun codigo de devolucion para esto, comprobado que acaba devolviendo 0 (func ok)
+			//pero va a saltar un evento de error que podra ir implemnetado en la clase heredera, aqui solo se maneja
+			$this->procesaNodeTimeOut();
 		}
 		else 
 		{
-			//***************** pues bien hay lectura post-bloqueo
+			//***************** TENEMOS lectura post-bloqueo
 			//aqui se deberian ir mandando los eventos Ans... definirian en la clase heredera aqui habria un "procesaAns...()", antes, esta funcion propagara el valor 0
 			//a la funcion que la haya llamado
 			//si no se recibe ans con el opc esperado (un evento se entromete, puede ocurrir) ( p ej opc FF o FE) deberiamos devolver codigos numericos diferentes de 0
 			echo "\nlectura post-bloqueo!!!#".$bufer."#\n\n\n";
-			$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'AnsPers', 'message'=>$bufer, 'color'=>'black')));
-			$this->conClienteActivoBloqueaRespuesta->write($mensaje_electronica);
-			//******************* lo dicho arriba, vigila lo que devuelves, de momento devolvere un 0, todo OK
-			return $this->codColectMethodReturn["EJECUCION_OK"];
+			
+			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso
+			$mensaje_debug= $this->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>"Respuesta Ans:".$bufer)));
+			$this->conClienteActivoBloqueaRespuesta->write($mensaje_debug);
+			
+			$opc = $this->miKimal->dameOpcTrama($bufer);
+			
+			
+			//tramas de rechazo emitidas por la electronica
+			if($opc == "FF")
+			{
+				$this->procesaErrOpCode();
+				return $this->codColectMethodReturn["OPC_RECHAZADO_ELECTRONICA"];
+			}
+			if($opc == "FE")
+			{
+				$this->procesaFrameError();
+				return $this->codColectMethodReturn["VALOR_PARAM_INCORRECTO"];
+			}
+			//kimaldi_net no parece tener ningun codigo de devolucion para esto, comprobado que acaba devolviendo 0 (func ok)
+			//pero va a saltar un evento de error que podra ir implemnetado en la clase heredera, aqui solo se maneja
+			if($opc == "FD")
+			{
+				$this->procesaFrameDelay();
+			}
+			
 		}
 		
-		
+		//llegado aqui todo ok (algunos errores hacen que se sigapropagando el valor "todo ok" pero aun asi se lanzan eventos de error)
+		return $this->codColectMethodReturn["EJECUCION_OK"];
 		
 	
 	}
@@ -680,14 +728,16 @@ class phpKimServer extends React\Socket\Server
 	}
 	
 	
-	//------------------------------------------------
+	
+	
+	
+	//-----------------------------------------------------
+	
 	/*
-	 *
-	 * EVENTOS EMULANDO CLASE BioNet
-	 *
-	 *
+	 * PREPROCESO DE EVENTOS ESPONTANEOS DE LA ELECTRONICA
+	 * 
 	 */
-	//-------------------------------------------------
+	
 	
 	//implementar OnKey en la clase que hereda
 	private function procesaOnKey($arg)
@@ -727,18 +777,18 @@ class phpKimServer extends React\Socket\Server
 	//---------------------------------------------------------
 	
 	
-	//implementar OnDigitalInput en la clase que hereda
+	//implementar OnDigitalInput en la clase que hereda (Een este caso se pueden usar DOS MANEJADORES DE EVENTOS alternativos, ambos seran llamados si es posible)
 	private function procesaOnDigitalInput($arg)
 	{
+		
 		if ( method_exists($this, "OnDigitalInput") )
 			$this->OnDigitalInput($arg);
 		else
 			echo "metodo OnDigitalInput lanzado, pero no esta definido ni implementado\n";
 		
 		
-
 		 
-		//coscha propia, he ideado otro manejador de evento (alternativo) mucho mas comodo
+		//cosecha propia, he ideado otro manejador de evento (alternativo) mucho mas comodo
 		if ( method_exists($this, "OnDigitalInputBoolean") )
 		{
 			
@@ -773,7 +823,97 @@ class phpKimServer extends React\Socket\Server
 		
 	}
 	
+	/*
+	 * FIN PREPROCESO DE EVENTOS ESPONTANEOS
+	 * 
+	 */
+	
+	//---------------------------------------------------------------
 	
 	
+	/*
+	 * PROCESO EVENTOS DE RESPUESTA (ANS)
+	 * 
+	 */
+	
+	
+	
+	
+	/*
+	 * FIN PROCESO EVENTOS DE RESPUESTA
+	 * 
+	 */
+	
+	//--------------------------------------------------------------------
+	
+	
+   /*
+	* PROCESO EVENTOS ERROR
+	*
+	*/
+	
+	private function procesaTCPClose()
+	{
+		if ( method_exists($this, "TCPClose") )
+			$this->TCPClose();
+		else
+			echo "evento de error TCPClose lanzado, pero no esta definido ni implementado\n";
+	}
+
+	//------------------------------------------------
+
+	private function procesaTCPError($error)
+	{
+		if ( method_exists($this, "TCPError") )
+			$this->TCPError($error);
+		else
+			echo "evento de error TCPError lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//------------------------------------------------
+	
+	private function procesaFrameDelay()
+	{
+		if ( method_exists($this, "TFrameDelay") )
+			$this->FrameDelay();
+		else
+			echo "evento de error FrameDelay lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//------------------------------------------------
+	
+	private function procesaNodeTimeOut()
+	{
+		if ( method_exists($this, "NodeTimeOut") )
+			$this->NodeTimeOut();
+		else
+			echo "evento de error NodeTimeOut lanzado, pero no esta definido ni implementado\n";
+	}
+	
+    //------------------------------------------------
+	
+	private function procesaErrOpCode()
+	{
+		if ( method_exists($this, "ErrOpCode") )
+			$this->ErrOpCode();
+		else
+			echo "evento de error ErrOpCode lanzado, pero no esta definido ni implementado\n";
+	}
+	//------------------------------------------------
+	
+	private function procesaFrameError()
+	{
+		if ( method_exists($this, "FrameError") )
+			$this->FrameError();
+		else
+			echo "evento de error FrameError lanzado, pero no esta definido ni implementado\n";
+	}
+	
+   /*
+	* FIN PROCESO EVENTOS DE ERROR
+	*
+	*/
+	
+	//--------------------------------------------------------------------
 
 }

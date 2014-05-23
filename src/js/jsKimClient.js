@@ -16,24 +16,23 @@ function jsKimClient()
 		this.wsUri = "ws://"+dir+":"+puerto
 		this.websocket = new WebSocket(this.wsUri);
 		
-		//se captura la referencia del objeto que llamo a esta funcion de forma dinamica para usarlo luego
-		//dentro del ambito websocket.onMessage "this" es el propio objetowebsocket, 
-		//that = this NO SE PUEDE hacer arriba en el constructor por que capturaria this de la clase padre
-		//desvirtuando el efecto de herencia
-		that=this
-		
+		//cuando aludimos a "this" dentro del ambito de un evento de websocket o de click de boton HTML
+		//siempre estamos aludiendo al objeto websocket (en si) o al boton HTML, por lo tanto se pierde
+		//la referencia this de la instancia de esta clase, pararemediarlo le agregamos a los objetos
+		//que manejen eventos , en el momento de su creacion un atributo que ayude a acceder a la referecnia de esta instancia
+		this.websocket.referenciaThis = this;
 		
 		//manejadores de eventos del ws que acabamos de crear
 		this.websocket.onopen = function(ev) 
 		{ 
-			$('#message_box').append("<div class=\"system_msg\">Conectado</div>"); //notify user
-			that.conectado = true;
+			$('#message_box').append("<div class=\"system_msg\">Conectado "+this.referenciaThis.wsUri+"</div>"); //notify user
+			this.referenciaThis.conectado = true;
 		}
 		
 		
-		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión ws - "+ev.data+"</div>"); that.conectado = false}; 
-		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada</div>"); that.conectado = false}; 
-		this.websocket.onmessage = function(ev){ that.onServerMessage.call(that, ev); };
+		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión "+this.referenciaThis.wsUri+ " - "+ev.data+"</div>"); this.referenciaThis.conectado = false}; 
+		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+this.referenciaThis.wsUri+"</div>"); this.referenciaThis.conectado = false}; 
+		this.websocket.onmessage = function(ev){ that.onServerMessage.call(this.referenciaThis, ev); };
 	}
 	
 	//-------------------------------------------------------------------
@@ -43,6 +42,7 @@ function jsKimClient()
 		
 		var msg = JSON.parse(ev.data); //PHP sends Json data
 		var tipo = msg.tipo; 
+		
 		
 
 		//***
@@ -67,9 +67,12 @@ function jsKimClient()
 			this.callPorNombre(funcName, args);
 		}	
 		else if(tipo == 'debugMsg')//TODO un interesantisimo recurso para el debug proveninete del servidor en un div...
-		{
+		{   
+			var servmsg = msg.message;
+			var serverIp= msg.server;
 			//TODO DEPENDIENTE DE HTML INSERTAR MEJOR NUEVO DIV DE DEBUG AL PRINCIPIO SI NO EXISTE!!!
-			$('#message_debug').append("<div class=\"system_msg\">"+umsg+"</div>");
+			$('#message_debug').append("<div class=\"system_msg\">server@"+msg.server+" debug: "+servmsg+"</div>");
+			$('#message_box').append("<div class=\"system_msg\">server@"+msg.server+" debug: "+servmsg+"</div>");
 		}
 		else if(tipo == 'system')
 		{
@@ -111,10 +114,11 @@ function jsKimClient()
 			return false
 		}
 		
-		that = this
 		sender = $('#'+idBoton);
 		
-		$('#'+idBoton).click( function(){ laFuncion.call(that, sender); } );
+		$('#'+idBoton)[0].referenciaThis = this;
+		
+		$('#'+idBoton).click( function(){laFuncion.call(this.referenciaThis, sender); } );
 	}
 	
 	//-------------------------------------------------------------------
