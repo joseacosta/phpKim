@@ -9,9 +9,8 @@
 
 
 <script src="js/jquery-2.1.1.min.js"></script>
-
-<script src="js/Base.js"></script>
 <script src="js/jsKimClient.js"></script>
+<script src="js/extensionJsKimClient.js"></script>
 
 <link href="css/estilo.css" rel="stylesheet" type="text/css">
 
@@ -32,6 +31,7 @@ $(document).ready(	function()
 
 	cliente2.registerButtonClickHandler("test-protocolo2", cliente2.handlerBoton);
 });
+
 </script>
 
 </head>

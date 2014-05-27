@@ -1,8 +1,19 @@
 <?php
 
-require_once 'phpKim.php';
+require_once 'Configuracion.php';
+
+require_once 'KimalPHP.php';
 
 require __DIR__.'/../vendor/autoload.php';
+
+$class_methods = get_class_methods('Configuracion');
+
+
+foreach ($class_methods as $method_name) {
+    echo "$method_name\n";
+}
+
+
 
 
 class phpKimServer extends React\Socket\Server
@@ -10,27 +21,32 @@ class phpKimServer extends React\Socket\Server
 	
 	protected $miKimal;
 	protected $miLoop;
-	protected $timerTimeout;
+
 	protected $conns;
 	protected $conexElectronica;
 	
+	//opcs que determinan tramas de eventos, cada uno ira asociado a un handler
 	protected $opcColectEvent;
 	
+	//coleccion con numeros de devolucion de funciones al estilo de las librerias Kimaldi_Net, con esto evitaremos usar numeros magicos
 	protected $codColectMethodReturn;
 	
-	protected  $conClienteActivoBloqueaRespuesta;
+	//almacena el cliente que mando el ultimo mensaje al servidor y que, eventualmente producira un bloqueo en espera de respuesta
+	protected $conClienteActivoBloqueaRespuesta;
 	
-	protected $timeoutConnElectronica = 7;
-	protected $timeoutNodeTimeOut = 3;
+	//tiempo de espera maximo para establecer conexion con la electronica
+	protected $timeoutConnElectronica;
 	
-	protected $peticionesEsperanRespuesta;
+	//tiempo de espera maximo para recibir una respuesta esperada de la electronica, una vexz cumplido se dispara el evento NodeTimeOut
+	protected $timeoutNodeTimeOut;
 	
+	//parametros de ip y puerto de la electronica, config de electronica por defecto para TCP = 192.168.123.10:1001
 	public $dirIPElectronica;
 	public $puertoElectronica;
 	
-	//public $ipLocal = '192.168.0.145';
-	public $ipLocal = '127.0.0.1';
-	public $puertoEscucha = 12000;
+	//parametros de ip y puerto del servidor
+	public $ipLocal;
+	public $puertoEscucha;
 	
 	
 	public $electronicaConectada = false;
@@ -42,15 +58,26 @@ class phpKimServer extends React\Socket\Server
 	//#########CONSTRUCTOR
 	public function __construct() 
 	{
+		
 		$this->miLoop = React\EventLoop\Factory::create();
 		
 		
 		//constructor del padre 
 		parent::__construct($this->miLoop);
 		
+		
+		
+		$this->ipLocal = Configuracion::$ipLocalServer;
+		$this->puertoEscucha = Configuracion::$puertoEscuchaServer;
+		$this->timeoutConnElectronica = Configuracion::$timeoutConnElectronica;
+		$this->timeoutNodeTimeOut = Configuracion::$timeoutNodeTimeOut;
+		
+		
 		$this->opcColectEvent=array("81" => "procesaOnTrack",
 							        "80" => "procesaOnKey",
-							        "60" => "procesaOnDigitalInput");
+							        "60" => "procesaOnDigitalInput",
+									"30" => "desambiguacionDigitalOutput",
+									"40" => "desambiguacionRelay");
 		
 		
 		$this->codColectMethodReturn=array("EJECUCION_OK" => 0,
@@ -513,6 +540,10 @@ class phpKimServer extends React\Socket\Server
 			
 		}
 		
+		//las respuestas Ans normales al fin y al cabo son tratados como eventos (tipo ANS), ya hem,os hecho los controles de sincronizacion que necesitabamos
+		//para que sigan el curso normal de un evento, vamos a pasarla a la funcion que trata los eventos espontaneos
+		$this->onDataElectronica($bufer);
+		
 		//llegado aqui todo ok (algunos errores hacen que se sigapropagando el valor "todo ok" pero aun asi se lanzan eventos de error)
 		return $this->codColectMethodReturn["EJECUCION_OK"];
 		
@@ -613,7 +644,7 @@ class phpKimServer extends React\Socket\Server
 		}
 		else 
 		{
-			echo "\nOPC \"".$opc."\" no incluido en lista de eventos reconocidos\n";
+			echo "\nOPC \"".$opc."\" no incluido en lista de eventos/respuestas reconocidos\n";
 		}
 		
 	}
@@ -823,6 +854,8 @@ class phpKimServer extends React\Socket\Server
 		
 	}
 	
+	
+	
 	/*
 	 * FIN PREPROCESO DE EVENTOS ESPONTANEOS
 	 * 
@@ -839,10 +872,66 @@ class phpKimServer extends React\Socket\Server
 	
 	
 	
+	
 	/*
 	 * FIN PROCESO EVENTOS DE RESPUESTA
 	 * 
 	 */
+	
+	//--------------------------------------------------------------------
+	
+	
+	
+	//---------------------------------------------------------------
+	
+	
+	/*
+	* PROCESO DE EVENTOS AMBIGUOS (ESPONTANEOS O DE RESPUESTA?)
+	*
+	*/
+	
+		
+	//-----------------------------------------------------
+	
+	
+	//desambiguacion entre OnStatusDigitalOutput o AnsActivateDigitalOutput (OPC 0x30)
+	private function desambiguacionDigitalOutput($arg)
+	{
+		
+		echo "evaluando desambiguacionDigitalOutput (OPC 0x30)el criterio es el arg recibido:#".$arg."#\n";
+	
+		//SIGUE POR AQUIIIIIIII  strlen(arg y dividir de dos en dos (2 bytes))
+		
+		if ( method_exists($this, "OnStatusDigitalOutput") )
+			$this->OnStatusDigitalOutput($arg);
+		else
+			echo "metodo OnStatusDigitalOutput lanzado, pero no esta definido ni implementado\n";
+	
+	}
+	
+	
+	//-----------------------------------------------------
+	
+	
+	//desambiguacion entre OnStatusRelay o AnsActivateRelay (OPC 0x40)
+	private function desambiguacionRelay($arg)
+	{
+		echo "evaluando desambiguacionRelay (OPC 0x40)el criterio es el arg recibido:#".$arg."#\n";
+		
+		if ( method_exists($this, "OnStatusRelay") )
+			$this->OnStatusRelay($arg);
+		else
+			echo "metodo OnStatusRelay lanzado, pero no esta definido ni implementado\n";
+	
+	}
+	
+	
+	
+	
+	/*
+	* FIN PROCESO DE EVENTOS AMBIGUOS 
+	*
+	*/
 	
 	//--------------------------------------------------------------------
 	

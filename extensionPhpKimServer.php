@@ -1,5 +1,5 @@
 <?php
-//php htdocs/phpkimaldi/testReact/serverInicio.php
+//php htdocs/phpkimaldi/testReact/extensionPhpKimServer.php
 
 require_once 'src/phpKimServer.php';
 
@@ -14,7 +14,7 @@ Class miServidorKimaldi extends phpKimServer
 		
 		$this->TestNodeLink();
 		
-		//funciona perfect
+		//acceso a datos funciona perfect, pero produciendo bloqueo como es logico
 		/*
 		$sql = new mysqli('localhost','root','inntelia','prueba');
 		$query = "INSERT INTO `empleados` (`nombre`) VALUES (".$track.")";
@@ -43,6 +43,8 @@ Class miServidorKimaldi extends phpKimServer
 		
 		$this->responseClientFunction( "manejaEventoDin", array($din1, $din2, $din3, $din4) );
 	}
+	
+	
 	
 	//--------------------------------------------------------
 	//override metodo de evento
