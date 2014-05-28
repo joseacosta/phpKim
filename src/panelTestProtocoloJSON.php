@@ -29,7 +29,9 @@ $(document).ready(	function()
 	
 	cliente.registerButtonClickHandlerByName("test-protocolo", "handlerBoton");
 
-	cliente2.registerButtonClickHandler("test-protocolo2", cliente2.handlerBoton);
+	cliente2.registerButtonClickHandlerByName("test-protocolo2", "handlerBoton");
+
+	//cliente2.registerButtonClickHandler("test-protocolo2", cliente2.handlerBoton);
 });
 
 </script>

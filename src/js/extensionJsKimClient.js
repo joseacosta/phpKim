@@ -18,6 +18,8 @@ function miClase()
 	this.handlerBoton = function(sender)
 	{
 		this.callFuncServer("nuevaFuncion", ["cosa", 0.5]);
+		console.log(sender);
+		console.log(this.wsUri);
 	}
 	
 	//----------

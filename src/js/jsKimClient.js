@@ -13,7 +13,7 @@ function jsKimClient()
 	this.connectServerWs = function(dir, puerto)
 	{   
 		
-		this.wsUri = "ws://"+dir+":"+puerto
+		this.wsUri = "ws://"+dir+":"+puerto;
 		this.websocket = new WebSocket(this.wsUri);
 		
 		//cuando aludimos a "this" dentro del ambito de un evento de websocket o de click de boton HTML
@@ -22,16 +22,18 @@ function jsKimClient()
 		//que manejen eventos , en el momento de su creacion un atributo que ayude a acceder a la referecnia de esta instancia
 		this.websocket.referenciaThis = this;
 		
+		$('#message_box').append("<div class=\"system_msg\">Abriendo conexion con "+this.wsUri+".......</div>");
+		
 		//manejadores de eventos del ws que acabamos de crear
 		this.websocket.onopen = function(ev) 
-		{ 
-			$('#message_box').append("<div class=\"system_msg\">Conectado "+this.referenciaThis.wsUri+"</div>"); //notify user
-			this.referenciaThis.conectado = true;
-		}
+								{ 
+									$('#message_box').append("<div class=\"system_msg\">Conectado!!! "+this.referenciaThis.wsUri+"</div>");
+									this.referenciaThis.conectado = true;
+								};
 		
-		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión "+this.referenciaThis.wsUri+ " - "+ev.data+"</div>"); this.referenciaThis.conectado = false}; 
-		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+this.referenciaThis.wsUri+"</div>"); this.referenciaThis.conectado = false}; 
-		this.websocket.onmessage = function(ev){ that.onServerMessage.call(this.referenciaThis, ev); };
+		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión "+this.referenciaThis.wsUri+ " - "+ev.data+"</div>"); this.referenciaThis.conectado = false;  }; 
+		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+this.referenciaThis.wsUri+"</div>"); this.referenciaThis.conectado = false;  }; 
+		this.websocket.onmessage = function(ev){ this.referenciaThis.onServerMessage.call(this.referenciaThis, ev); };
 	
 	}
 	
@@ -114,11 +116,13 @@ function jsKimClient()
 			return false
 		}
 		
-		sender = $('#'+idBoton);
-		
+		//El objeto jquery aludido por su id sera el SENDER que espera recibir como argumento nuestro handler de evento
+		//para emular el comportamiento de la palabra reservada this en otros lenguajes cuando se maneja un evento
+		//vamosa hacer que el .click del boton llame al handler usando call para darle el contexto de "this" que nosotros queramos
+		//en otro caso "this" se referiria al propio elemento pulsado
 		$('#'+idBoton)[0].referenciaThis = this;
 		
-		$('#'+idBoton).click( function(){laFuncion.call(this.referenciaThis, sender); } );
+		$('#'+idBoton).click( function(){laFuncion.call(this.referenciaThis, $('#'+idBoton)[0] ); } );
 	}
 	
 	//-------------------------------------------------------------------
@@ -154,7 +158,7 @@ function jsKimClient()
 	{
 		if(!this.conectado)
 		{
-			alert("err. cliente no conectado con el servidor ws (llamada callFuncServer, clase: "+this.constructor.name+")");
+			alert("err. cliente no conectado con el servidor ws con URI:"+this.wsUri+" (llamada callFuncServer, clase: "+this.constructor.name+")");
 			return;
 		}
 		

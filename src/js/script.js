@@ -152,8 +152,6 @@ function inicio()
     $('#sendResetTest').click(function()
     							{ 
 		
-									
-									
 									var msg = 
 									{
 										tipo: "frame",

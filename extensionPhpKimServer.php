@@ -14,6 +14,7 @@ Class miServidorKimaldi extends phpKimServer
 		
 		$this->TestNodeLink();
 		
+		
 		//acceso a datos funciona perfect, pero produciendo bloqueo como es logico
 		/*
 		$sql = new mysqli('localhost','root','inntelia','prueba');
@@ -64,6 +65,8 @@ Class miServidorKimaldi extends phpKimServer
 		
 		
 		$result = $this->ActivateRelay(3, 1);
+		//$result = $this->WriteDisplay("Hola Caracola");
+		//$result = $this->ClosePort();
 		
 		echo "\nla devolucion fue el valor:".$result."\n";
 		
@@ -79,7 +82,7 @@ Class miServidorKimaldi extends phpKimServer
 
 
 //-------------------------------------------------------------------------
-
+//RUN RUN RUN 
 //instancia de la clase ya extendida
 $servKimaldi = new miServidorKimaldi();
 
@@ -88,7 +91,7 @@ $servKimaldi = new miServidorKimaldi();
 $valorconexion = $servKimaldi->OpenPortTCP("192.168.123.10");
 //$servKimaldi->OpenPortTCP("127.0.0.1");
 	
-echo "\nvalor de conexin devuelto por openporttcp:".$valorconexion."\n";
+echo "\nvalor de conexion devuelto por openporttcp:".$valorconexion."\n";
 
 
 

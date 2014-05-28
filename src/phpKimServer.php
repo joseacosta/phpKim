@@ -77,7 +77,12 @@ class phpKimServer extends React\Socket\Server
 							        "80" => "procesaOnKey",
 							        "60" => "procesaOnDigitalInput",
 									"30" => "desambiguacionDigitalOutput",
-									"40" => "desambiguacionRelay");
+									"40" => "desambiguacionRelay",
+									"01" => "procesaAnsHotReset",
+									"00" => "procesaAnsTestNodeLink",
+									"31" => "procesaAnsSwitchDigitalOutput",
+									"41" => "procesaAnsSwitchRelay",
+									"11" => "procesaAnsWriteDisplay");
 		
 		
 		$this->codColectMethodReturn=array("EJECUCION_OK" => 0,
@@ -141,11 +146,19 @@ class phpKimServer extends React\Socket\Server
 	
 	public function ClosePort()
 	{
+		echo "\n\nEjecutando funcion closePort";
+		
+		if($this->conexElectronica == null)
+		{
+			echo "\n\nERROR se intento cerrar el socket con la electronica pero este NO se encuentra abierto\n";
+			return $this->codColectMethodReturn["NO_CANAL_COM_ELECTRONICA"];
+		}
+		
 		$this->conexElectronica->close();
 		
 		$this->conexElectronica = null;
-		
-		echo "\n\nfuncion closePort";
+
+		return $this->codColectMethodReturn["EJECUCION_OK"];
 	}
 	
 
@@ -166,7 +179,7 @@ class phpKimServer extends React\Socket\Server
 	
 		//manejador para evento on data de la conexion de electronica
 		$this->conexElectronica->on('data', [$this,'onDataElectronica']);
-		//$this->conexElectronica->on('error', [$this, 'onErrorConexionElectronica']);
+		$this->conexElectronica->on('error', [$this, 'onErrorConexionElectronica']);
 		$this->conexElectronica->on('close', [$this, 'onFinalizacionElectronica']);
 		
 		//$this->conexElectronica->on('end', [$this,'onFinalizacionElectronica']);
@@ -199,7 +212,7 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function onFinalizacionElectronica($conn)
 	{
-		echo "\n\ndesconectada electronica, IP:".$conn->getRemoteAddress();
+		echo "\n\ndesconectada electronica, IP:".$conn->getRemoteAddress()."\n\n";
 	
 		$this->procesaTCPClose();
 		
@@ -215,9 +228,11 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function onErrorConexionElectronica($error)
 	{
-		echo "\n\nerror TCP:";
+		echo "\n\nError TCP:";
 		var_dump($error);
 	
+		echo "\n\n";
+		
 		$this->procesaTCPError($error);
 	
 		//fuera referencia
@@ -263,14 +278,16 @@ class phpKimServer extends React\Socket\Server
 							return;
 											
 					}
+					
+					//---
 							
-					echo $connCliente->getRemoteAddress().": escribio trama WebSocket RAW:\n".$data."\n\n";
+					//echo "Cliente@".$connCliente->getRemoteAddress().": escribio trama WebSocket RAW:\n".$data."\n\n";
 							
 
 					$received_text = $this->unmask($data); //unmask data
 										
 							
-					echo $connCliente->getRemoteAddress().": escribio trama WebSocket desenmascarada:\n".$received_text."\n\n";
+					echo "\nCliente@".$connCliente->getRemoteAddress().": escribio trama WebSocket valor desenmascarado:\n".$received_text."\n\n";
 							
 							
 					$tst_msg = json_decode($received_text); //json decode
@@ -294,7 +311,7 @@ class phpKimServer extends React\Socket\Server
 											
 						if($tipoArgumento == "char")
 						{
-							//la coleccion de argumentos la tratamos como array, si
+							//la coleccion de argumentos la tratamos en nuestra clase generadora de tramas como array, si
 							//el tipo es char es que estamos recibiendo una cadena y no se trata exactamente igual
 							//la convertimos a array de caracteres
 							$argumentos = str_split ($argumentos);
@@ -313,7 +330,7 @@ class phpKimServer extends React\Socket\Server
 							
 							
 					}
-					//el usuario manda funcion para ser llamada por su nombre y array con argumentos
+					//el usuario manda funcion para ser llamada por su nombre aqui en el servidor y un array con argumentos
 					elseif (isset($tst_msg->tipo) && $tst_msg->tipo == 'func')
 					{
 						$funcName = $tst_msg->funcName;
@@ -451,7 +468,9 @@ class phpKimServer extends React\Socket\Server
 		
 	}
 	//--------------------------------------------------------------------------
-	
+	//Procesa el envio de una trama a la electronica bloquea esperando y evaluando la respuesta
+	//controla cosas como cual el cliente actual que espera respuesta, emite eventos de error de trama y NodeTimeOut, ademas, las respuestas
+	//recibidas se propagan luego como cualquier otro evento (son los llamados eventos de respuesta prefijo "Ans")
 	function manda_comando_electronica($trama, $opcRespuestaEsperado=null)
 	{
 		
@@ -459,9 +478,6 @@ class phpKimServer extends React\Socket\Server
 
 		if ($this->conexElectronica == null)
 		{
-			//TODO La funcion que haya terminado llegando aqui (ej HotReset)
-			//debe acabar recibiendo y devolviendo (ambas cosas) el valor 1 ( quecorresponde a "no se ha establecido canal de comunicacion")
-			
 			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible mandar tramas\n";
 			return $this->codColectMethodReturn["NO_CANAL_COM_ELECTRONICA"];
 		}
@@ -665,9 +681,10 @@ class phpKimServer extends React\Socket\Server
 	{
 		$trama = $this->miKimal->tramaHotReset();
 		echo "\n enviando trama HotReset: ".$trama;
-		//******************hacer el ->write directamente hace uqe perdamos TOoDO el control, usa la func manda_comando_electronica
-		//hazlo con todas las funciones de abajo, y claro propaga loq ue devuelva manda_comado_electronica() return...
-		//-----------*******
+		//Hacer el ->write directamente hacia la electronica hace uqe perdamos TOoDO el control, usar la func manda_comando_electronica
+		//controla cosas como el cliente actual que espera respuesta (cola mediante bloqueo), emite eventos de error de trama y NodeTimeOut, ademas, las respuestas 
+		//recibidas se propagan luego como cualquier otro evento (son los llamados eventos de respuesta prefijo "Ans")
+		
 		$valorRes = $this->manda_comando_electronica($trama);
 		return $valorRes;
 	}
@@ -759,13 +776,37 @@ class phpKimServer extends React\Socket\Server
 	}
 	
 	
+	//---------------------------------------
+	
+	
+	public function WriteDisplay($Text)
+	{
+		
+		//el texto debera tener obligatoriamente 40 caracteres 20 de la primera linea y 20 la segunda
+		if(strlen($Text) != 40)
+		{
+			$Text = substr(  str_pad($Text,40,"*"), 0,  40);
+		}
+		
+		//la coleccion de argumentos la tratamos en nuestra clase generadora de tramas como array, si
+		//el tipo es char es que estamos recibiendo una cadena y no se trata exactamente igual
+		//la convertimos a array de caracteres
+		$arrayText = str_split ($Text);
+		
+		$trama = $this->miKimal->createFrame(0x11, $arrayText, "char");
+		
+		echo "\nEnviando trama WriteDisplay: ".$trama. "\n";
+		$valorRes = $this->manda_comando_electronica($trama);
+		return $valorRes;
+		
+	}
 	
 	
 	
 	//-----------------------------------------------------
 	
 	/*
-	 * PREPROCESO DE EVENTOS ESPONTANEOS DE LA ELECTRONICA
+	 * PREPROCESADO DE EVENTOS ESPONTANEOS DE LA ELECTRONICA
 	 * 
 	 */
 	
@@ -857,7 +898,7 @@ class phpKimServer extends React\Socket\Server
 	
 	
 	/*
-	 * FIN PREPROCESO DE EVENTOS ESPONTANEOS
+	 * FIN PREPROCESADO DE EVENTOS ESPONTANEOS
 	 * 
 	 */
 	
@@ -865,16 +906,82 @@ class phpKimServer extends React\Socket\Server
 	
 	
 	/*
-	 * PROCESO EVENTOS DE RESPUESTA (ANS)
+	 * PROCESADO EVENTOS DE RESPUESTA (ANS)
 	 * 
 	 */
 	
+	private function procesaAnsHotReset()
+	{
+		if ( method_exists($this, "AnsHotReset") )
+			$this->AnsHotReset();
+		else
+			echo "evento de respuesta AnsHotReset lanzado, pero no esta definido ni implementado\n";
+		
+	}
 	
+	//--------------------------------------------------------------------
 	
+	private function procesaAnsTestNodeLink()
+	{
+		if ( method_exists($this, "AnsTestNodeLink") )
+			$this->AnsTestNodeLink();
+		else
+			echo "evento de respuesta AnsTestNodeLink lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//--------------------------------------------------------------------
+	
+	private function procesaAnsActivateDigitalOutput()
+	{
+		if ( method_exists($this, "AnsActivateDigitalOutput") )
+			$this->AnsActivateDigitalOutput();
+		else
+			echo "evento de respuesta AnsActivateDigitalOutput lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//--------------------------------------------------------------------
+	
+	private function procesaAnsSwitchDigitalOutput()
+	{
+		if ( method_exists($this, "AnsSwitchDigitalOutput") )
+			$this->AnsSwitchDigitalOutput();
+		else
+			echo "evento de respuesta AnsSwitchDigitalOutput lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//--------------------------------------------------------------------
+	
+	private function procesaAnsActivateRelay()
+	{
+		if ( method_exists($this, "AnsActivateRelay") )
+			$this->AnsActivateRelay();
+		else
+			echo "evento de respuesta AnsActivateRelay lanzado, pero no esta definido ni implementado\n";
+	}
+	
+	//--------------------------------------------------------------------
+	
+	private function procesaAnsSwitchRelay()
+	{
+		if ( method_exists($this, "AnsSwitchRelay") )
+			$this->AnsSwitchRelay();
+		else
+			echo "evento de respuesta AnsSwitchRelay lanzado, pero no esta definido ni implementado\n";
+	}
+
+	//--------------------------------------------------------------------
+	
+	private function procesaAnsWriteDisplay()
+	{
+		if ( method_exists($this, "AnsWriteDisplay") )
+			$this->AnsWriteDisplay();
+		else
+			echo "evento de respuesta AnsWriteDisplay lanzado, pero no esta definido ni implementado\n";
+	}
 	
 	
 	/*
-	 * FIN PROCESO EVENTOS DE RESPUESTA
+	 * FIN PROCESADO EVENTOS DE RESPUESTA
 	 * 
 	 */
 	
@@ -886,7 +993,7 @@ class phpKimServer extends React\Socket\Server
 	
 	
 	/*
-	* PROCESO DE EVENTOS AMBIGUOS (ESPONTANEOS O DE RESPUESTA?)
+	* PROCESADO DE EVENTOS AMBIGUOS (ESPONTANEOS O DE RESPUESTA?)
 	*
 	*/
 	
@@ -900,12 +1007,30 @@ class phpKimServer extends React\Socket\Server
 		
 		echo "evaluando desambiguacionDigitalOutput (OPC 0x30)el criterio es el arg recibido:#".$arg."#\n";
 	
-		//SIGUE POR AQUIIIIIIII  strlen(arg y dividir de dos en dos (2 bytes))
+		//sin arg deducimos que estra trama d ela electronica es AnsActivateDigitalOutput
+		//en otro caso es un evento de fin de temporalizacion OnStatusDigitalOutput
+		if(strlen($arg) == 0)
+		{
+			if ( method_exists($this, "AnsActivateDigitalOutput") )
+				$this->AnsActivateDigitalOutput();
+			else
+				echo "metodo AnsActivateDigitalOutput lanzado, pero no esta definido ni implementado\n";
+			
+		}
+		else //si hay argumentos, obligatoriamente deberian ser dos (dos bytes codificados en hexa, cada uno dos caracteres)
+		{
+			
+			$NumOut = substr( $arg, 0, 2 );
+			$status = substr( $arg, 2, 2 );
+			
+			if ( method_exists($this, "OnStatusDigitalOutput") )
+				$this->OnStatusDigitalOutput($NumOut, $status);
+			else
+				echo "metodo OnStatusDigitalOutput lanzado, pero no esta definido ni implementado\n";
+			
+		}
 		
-		if ( method_exists($this, "OnStatusDigitalOutput") )
-			$this->OnStatusDigitalOutput($arg);
-		else
-			echo "metodo OnStatusDigitalOutput lanzado, pero no esta definido ni implementado\n";
+		
 	
 	}
 	
@@ -916,20 +1041,40 @@ class phpKimServer extends React\Socket\Server
 	//desambiguacion entre OnStatusRelay o AnsActivateRelay (OPC 0x40)
 	private function desambiguacionRelay($arg)
 	{
+		
 		echo "evaluando desambiguacionRelay (OPC 0x40)el criterio es el arg recibido:#".$arg."#\n";
 		
-		if ( method_exists($this, "OnStatusRelay") )
-			$this->OnStatusRelay($arg);
-		else
-			echo "metodo OnStatusRelay lanzado, pero no esta definido ni implementado\n";
+		//sin arg deducimos que estra trama d ela electronica es AnsActivateRelay
+		//en otro caso es un evento de fin de temporalizacion OnStatusRelay
+		if(strlen($arg) == 0)
+		{
+			if ( method_exists($this, "AnsActivateRelay") )
+				$this->AnsActivateRelay();
+			else
+				echo "metodo AnsActivateRelay lanzado, pero no esta definido ni implementado\n";
+				
+		}
+		else //si hay argumentos, obligatoriamente deberian ser dos (dos bytes codificados en hexa, cada uno dos caracteres)
+		{
+				
+			$NumRelay = substr( $arg, 0, 2 );
+			$status = substr( $arg, 2, 2 );
+				
+			if ( method_exists($this, "OnStatusRelay") )
+				$this->OnStatusRelay($numout, $status);
+			else
+				echo "metodo OnStatusRelay lanzado, pero no esta definido ni implementado\n";
+				
+		}
+		
 	
 	}
 	
-	
-	
+
+
 	
 	/*
-	* FIN PROCESO DE EVENTOS AMBIGUOS 
+	* FIN PROCESADO DE EVENTOS AMBIGUOS 
 	*
 	*/
 	
@@ -937,7 +1082,7 @@ class phpKimServer extends React\Socket\Server
 	
 	
    /*
-	* PROCESO EVENTOS ERROR
+	* PROCESADO EVENTOS ERROR
 	*
 	*/
 	
@@ -956,7 +1101,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "TCPError") )
 			$this->TCPError($error);
 		else
-			echo "evento de error TCPError lanzado, pero no esta definido ni implementado\n";
+			echo "evento de error TCPError lanzado, pero no esta definido ni implementado, error capturado:\n".$error."\n";
 	}
 	
 	//------------------------------------------------
@@ -999,7 +1144,7 @@ class phpKimServer extends React\Socket\Server
 	}
 	
    /*
-	* FIN PROCESO EVENTOS DE ERROR
+	* FIN PROCESADO EVENTOS DE ERROR
 	*
 	*/
 	
