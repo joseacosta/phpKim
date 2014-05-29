@@ -12,7 +12,7 @@
 class Configuracion
 {
 	
-	public static $ipLocalServer = "127.0.0.1"; //'192.168.0.145';
+	public static $ipLocalServer = '192.168.0.145';
 	public static $puertoEscuchaServer = 12000;
 	public static $timeoutConnElectronica = 5;
 	public static $timeoutNodeTimeOut = 3;

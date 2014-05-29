@@ -42,7 +42,7 @@ Class miServidorKimaldi extends phpKimServer
 	{
 		echo "\nEvento OnDigitalInputBoolean lanzado!!!\n";
 		
-		$this->responseClientFunction( "manejaEventoDin", array($din1, $din2, $din3, $din4) );
+		$this->broadcastClientFunction( "manejaEventoDin", array($din1, $din2, $din3, $din4) );
 	}
 	
 	
@@ -64,7 +64,7 @@ Class miServidorKimaldi extends phpKimServer
 		echo "\nllamaremos a un a funcion imitando a la API bioNet y veremos que devuelve\n";
 		
 		
-		$result = $this->ActivateRelay(3, 1);
+		$result = $this->ActivateRelay(3, 5);
 		//$result = $this->WriteDisplay("Hola Caracola");
 		//$result = $this->ClosePort();
 		

@@ -24,7 +24,7 @@ $(document).ready(	function()
 	cliente2 = new miClase();
 	
 	cliente.connectServerWs("127.0.0.1", "12000");
-	cliente2.connectServerWs("192.168.0.149", "12000");
+	cliente2.connectServerWs("192.168.0.145", "12000");
 
 	
 	cliente.registerButtonClickHandlerByName("test-protocolo", "handlerBoton");

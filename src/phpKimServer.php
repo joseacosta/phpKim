@@ -1,17 +1,10 @@
 <?php
 
 require_once 'Configuracion.php';
-
 require_once 'KimalPHP.php';
+require_once 'WsServerManager.php';
 
 require __DIR__.'/../vendor/autoload.php';
-
-$class_methods = get_class_methods('Configuracion');
-
-
-foreach ($class_methods as $method_name) {
-    echo "$method_name\n";
-}
 
 
 
@@ -19,6 +12,7 @@ foreach ($class_methods as $method_name) {
 class phpKimServer extends React\Socket\Server
 {
 	
+	protected $miWsManager;
 	protected $miKimal;
 	protected $miLoop;
 
@@ -94,9 +88,11 @@ class phpKimServer extends React\Socket\Server
 											"ERR_APERTURA_PUERTO_COM" => 253);
 									
 		
-		//INSTANCIA de clase generadora de tramas protocolo Kimaldi
+		//INSTANCIA de clase generadora de tramas con protocolo Kimaldi
 		$this->miKimal = new KimalPHP();
 		
+		//INSTANCIA de clase generadora de tramas con protocolo Kimaldi
+		$this->miWsManager = new WsServerManager();
 	
 		
 		$this->conns = new \SplObjectStorage();
@@ -121,6 +117,8 @@ class phpKimServer extends React\Socket\Server
 		//stream que conecta con la electronica, ojo al cuarto parametro que es el timeout para conectar
 		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
 		
+		echo "\n\nConectando con electronica tcp://".$this->dirIPElectronica.":".$this->puertoElectronica.".......";
+		
 		//un timeout para lectura  cuando hacemos bloqueos leyendo uan respuesta de ella
 		//esta funcion produce BLOQUEO
 		stream_set_timeout($clientStreamElectronica, $this->timeoutNodeTimeOut);
@@ -136,7 +134,7 @@ class phpKimServer extends React\Socket\Server
 		//notese que le pasamos el mismo loop que para todas las conexiones, posibilita escuchar sus eventos derecepcion
 		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
 		
-		echo "\n\nConexion establecida con la electronica";
+		echo "\n\nConexion establecida con la electronica!!!";
 		
 		return $this->codColectMethodReturn["EJECUCION_OK"];
 		
@@ -165,7 +163,7 @@ class phpKimServer extends React\Socket\Server
 	//---------------------------------------------------------------------------
 	
 	
-	protected function iniciaEventos()
+	protected function inicializaEventos()
 	{
 		//manejador de evento del servidor en general, basicamente, evento de nueva conexion entrante
 		$this->on('connection', [$this,'onConexionEntrante']);
@@ -192,7 +190,7 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function onDataElectronica($data)
 	{
-		echo "\ntrama de electronica recibida con data: ".$data."\n\n";
+		echo "\nTrama de electronica recibida con data: ".$data."\n\n";
 		
 		$desgloseTrama = array();
 		
@@ -204,7 +202,8 @@ class phpKimServer extends React\Socket\Server
 			$this->evaluaEvento( $desgloseTrama["OPC"] , $desgloseTrama["ARG"]);
 		} 
 		
-		$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Ev', 'message'=>$data, 'color'=>'black')));
+		$mensaje_electronica = $this->miWsManager->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Ev', 'message'=>$data, 'color'=>'black')));
+		
 		$this->mandarTodosUsuarios($mensaje_electronica); //send data
 	}
 	
@@ -247,7 +246,7 @@ class phpKimServer extends React\Socket\Server
 	
 		$this->conns->attach($connCliente);
 	
-		echo "\nnueva conexion entrante.....\n";
+		echo "\nNueva conexion entrante cliente@".$connCliente->getRemoteAddress().".....\n";
 	
 		//a la nueva conexion hay que darle sus manejadores de eventos
 		$connCliente->on('data',  [$this, 'onDataCliente']);
@@ -267,16 +266,16 @@ class phpKimServer extends React\Socket\Server
 					$this->conClienteActivoBloqueaRespuesta = $connCliente;
 		
 					//al conectar un cliente, este evento ya salta, vamosa ver si esta mandando peticion de conexion websocket
-					if($this->mensajeEsDeApertura($data))
-					{
+					if($this->miWsManager->mensajeEsDeApertura($data))
+					{			
+							echo "\nMensaje parece ser cabecera de apertura websocket\n\n";
 											
-							echo "\nparece ser cabecera de apertura websocket\n\n";
-											
-							$this->perform_handshaking($data, $connCliente, $this->ipLocal);
-											
+							$this->miWsManager->perform_handshaking($data, $connCliente, $this->ipLocal);
+
+							echo "\nCompletado HandShake cliente@".$connCliente->getRemoteAddress()."\n";
+							
 							//handshake completado, no seguimos
-							return;
-											
+							return;				
 					}
 					
 					//---
@@ -284,7 +283,7 @@ class phpKimServer extends React\Socket\Server
 					//echo "Cliente@".$connCliente->getRemoteAddress().": escribio trama WebSocket RAW:\n".$data."\n\n";
 							
 
-					$received_text = $this->unmask($data); //unmask data
+					$received_text = $this->miWsManager->unmask($data); 
 										
 							
 					echo "\nCliente@".$connCliente->getRemoteAddress().": escribio trama WebSocket valor desenmascarado:\n".$received_text."\n\n";
@@ -299,7 +298,7 @@ class phpKimServer extends React\Socket\Server
 					
 					
 					//el usuario manda un frame codificado como json
-					if(isset($tst_msg->tipo) && $tst_msg->tipo == 'frame')
+					if(isset($tst_msg->tipo) && ($tst_msg->tipo == 'frame' || $tst_msg->tipo == 'cmd'))
 					{
 							
 						$opc = $tst_msg->opc;
@@ -355,7 +354,7 @@ class phpKimServer extends React\Socket\Server
 						$user_message = $tst_msg->message; //message text
 						$user_color = $tst_msg->color; //color
 							
-						$response_text = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>$ipRemitente, 'message'=>$user_message, 'color'=>$user_color)));
+						$response_text = $this->miWsManager->mask(json_encode(array('tipo'=>'userMsg', 'name'=>$ipRemitente, 'message'=>$user_message, 'color'=>$user_color)));
 							
 											
 						$this->mandarTodosUsuarios($response_text, $ipRemitente);
@@ -376,7 +375,7 @@ class phpKimServer extends React\Socket\Server
 
 	protected function onFinalizacionCliente($connCli)
 	{
-		echo "desconectado cliente WS con IP:".$connCli->getRemoteAddress();
+		echo "\nDesconectado cliente WS con IP:".$connCli->getRemoteAddress()."\n";
 	
 		//fuera de la lista de conexiones de cliente
 		$this->conns->detach($connCli);
@@ -384,48 +383,52 @@ class phpKimServer extends React\Socket\Server
 	
 	
 	
-	//--------------------------------------------------------------------------
-	
-	public function Run()
-	{
-		
-		//llamamos a nuestra funcion de inicio de eventos
-		$this->iniciaEventos();
-		
-		//ojito que si no le pones ip del servidor en el que estamos como segundo parametro, SOLO funcionara en local
-		$this->listen($this->puertoEscucha, $this->ipLocal); 
-		
-		return $this->miLoop->run();
-
-	}
 	
 	//-------------------------------------------*****************
 	
 	function broadcastClientFunction($nombreFunc, $argList)
 	{
 		
-		$mensaje_broadcast_clientes = $this->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList )));
+		$mensaje_broadcast_clientes = $this->miWsManager->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
+		
+		echo "\nBroadcast todos los clientes, datos con valor".$mensaje_response_cliente."\n al cliente ".$ipClienteConcreto."\n";
+			
 		$this->mandarTodosUsuarios($mensaje_broadcast_clientes);
 
 	}
 	
 	//-------------------------------------------*****************
-	
+	/*Responde, de forma exclusiva, al ultimo cliente que mando una instruccion, cualquiera que sea, al servidor
+	le transmite el nombre de una funcion callback que se ejecutara en el propio cliente
+	si se usa para manejo de eventos de respuesta, (tipo Ans) como respuesta a tramas que manda la electronica como respuesta a una recibida
+	No hay riesgo de concurrencia, por que la respuesta de la electronica a una trama, la espera cada cliente ocasionando un bloqueo,
+	si se usa en otro contexto, p. ej. Un evento emitido de forma espontanea desde la electronica, el mensaje sera transmitido al ultimo cliente del que se recibio alguna orden
+	alternativamente se le puede dar como argumento la ip del cliente concreto al que deseamos responder
+	*/
 	function responseClientFunction($nombreFunc, $argList=array(), $ipClienteConcreto=null)
 	{
 		//preparamos JSON para llmar a func de cliente
-		$mensaje_response_cliente = $this->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
+		$mensaje_response_cliente = $this->miWsManager->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
 		
 		
+		//TODO testar esto
 		if($ipClienteConcreto != null)
 		{
-			//TODO implementar funcion que busque entre las conexionse de cliente uno con la ip buscada (FACIL)
-		    //$cliente = $this->dameClientePorIP($ipClienteConcreto);
-		    //$cliente->write($mensaje_response_cliente);
+			foreach ($this->conns as $conUsu)
+			{	
+				if($conUsu->getRemoteAddress() == $ipClienteConcreto)
+				{
+					echo "\n response a IP cliente concreto, datos con valor".$mensaje_response_cliente."\n al cliente ".$ipClienteConcreto."\n";
+					$conUsu->write($mensaje_response_cliente);
+					
+					return;
+				}
+				echo "\nSe busco cliente con IP ".$ipClienteConcreto.", pero no se encuentra registrado\n";
+			}
 		}
 		elseif($this->conClienteActivoBloqueaRespuesta == null)
 		{
-			echo "\n no es posible responder a cliente que ocasiono bloqueo, no definido\n";
+			echo "\nNo es posible responder a cliente que ocasiono bloqueo, no esta definido\n";
 			return;
 		}
 		else 
@@ -453,20 +456,6 @@ class phpKimServer extends React\Socket\Server
 		
 	}
 	
-	//--------------------------------------------------------------------------
-	function mensajeEsDeApertura($mensaje)
-	{
-		
-		if( strpos( $mensaje, "Upgrade: websocket") > -1  )
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-		
-	}
 	//--------------------------------------------------------------------------
 	//Procesa el envio de una trama a la electronica bloquea esperando y evaluando la respuesta
 	//controla cosas como cual el cliente actual que espera respuesta, emite eventos de error de trama y NodeTimeOut, ademas, las respuestas
@@ -511,10 +500,9 @@ class phpKimServer extends React\Socket\Server
 		if ($meta['timed_out'])
 		{
 			echo "\n\nTIMEOUT\n\n";
-			$mensaje_electronica = $this->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Event', 'message'=>"TIMEOUT", 'color'=>'black')));
-		
+			
 			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso
-			$mensaje_debug= $this->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>" NodeTimeOut")));
+			$mensaje_debug= $this->miWsManager->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>" NodeTimeOut")));
 			$this->conClienteActivoBloqueaRespuesta->write($mensaje_debug);
 			
 			//kimaldi_net no parece tener ningun codigo de devolucion para esto, comprobado que acaba devolviendo 0 (func ok)
@@ -526,11 +514,12 @@ class phpKimServer extends React\Socket\Server
 			//***************** TENEMOS lectura post-bloqueo
 			//aqui se deberian ir mandando los eventos Ans... definirian en la clase heredera aqui habria un "procesaAns...()", antes, esta funcion propagara el valor 0
 			//a la funcion que la haya llamado
-			//si no se recibe ans con el opc esperado (un evento se entromete, puede ocurrir) ( p ej opc FF o FE) deberiamos devolver codigos numericos diferentes de 0
+			//si no se recibe ans con el opc esperado (un evento se entromete, puede ocurrir)  deberiamos repetir lectura y bloqueo, (en este caso el tiempo del NodeTimeOut volveria a cero :?)
 			echo "\nlectura post-bloqueo!!!#".$bufer."#\n\n\n";
 			
 			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso
-			$mensaje_debug= $this->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>"Respuesta Ans:".$bufer)));
+			$mensaje_debug= $this->miWsManager->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>"Respuesta Ans:".$bufer)));
+			
 			$this->conClienteActivoBloqueaRespuesta->write($mensaje_debug);
 			
 			$opc = $this->miKimal->dameOpcTrama($bufer);
@@ -566,78 +555,6 @@ class phpKimServer extends React\Socket\Server
 	
 	}
 	
-	
-	//--------------------------------------------------------------------------
-	//desenmascara la trama websoket recibida
-	function unmask($text)
-	{
-		$length = ord($text[1]) & 127;
-		if($length == 126) {
-			$masks = substr($text, 4, 4);
-			$data = substr($text, 8);
-		}
-		elseif($length == 127) {
-			$masks = substr($text, 10, 4);
-			$data = substr($text, 14);
-		}
-		else {
-			$masks = substr($text, 2, 4);
-			$data = substr($text, 6);
-		}
-		$text = "";
-		for ($i = 0; $i < strlen($data); ++$i) {
-			$text .= $data[$i] ^ $masks[$i%4];
-		}
-		return $text;
-	}
-	
-	
-	//--------------------------------------------------------------------------
-	//codifica mensaje en formato de trama de websocket para mandarla a lsos clientes browser
-	function mask($text)
-	{
-		$b1 = 0x80 | (0x1 & 0x0f);
-		$length = strlen($text);
-	
-		if($length <= 125)
-			$header = pack('CC', $b1, $length);
-		elseif($length > 125 && $length < 65536)
-		$header = pack('CCn', $b1, 126, $length);
-		elseif($length >= 65536)
-		$header = pack('CCNN', $b1, 127, $length);
-		return $header.$text;
-	}
-	
-	//--------------------------------------------------------------------------
-	//completa el handshakeusando HTTP con el objeto conexion dado y la cabecera request recibida
-	function perform_handshaking($receved_header,$conn, $iphost)
-	{
-		$headers = array();
-		
-		$lines = preg_split("/\r\n/", $receved_header);
-		
-		foreach($lines as $line)
-		{
-			$line = chop($line);
-			if(preg_match('/\A(\S+): (.*)\z/', $line, $matches))
-			{
-				$headers[$matches[1]] = $matches[2];
-			}
-		}
-	
-		$secKey = $headers['Sec-WebSocket-Key'];
-		
-		//la cadena que vemos arriba es una cadena mÃ¡gica
-		$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-		//hand shaking header
-		$upgrade  = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" .
-				"Upgrade: websocket\r\n" .
-				"Connection: Upgrade\r\n" .
-				"WebSocket-Origin: $iphost\r\n" .
-				"Sec-WebSocket-Accept:$secAccept\r\n\r\n";
-		
-		$conn->write($upgrade);
-	}
 	
 	//-------------------------------------------------------------------
 	
@@ -1148,6 +1065,19 @@ class phpKimServer extends React\Socket\Server
 	*
 	*/
 	
-	//--------------------------------------------------------------------
+	//--------------------------------------------------------------------------
+	
+	public function Run()
+	{
+		
+		//llamamos a nuestra funcion de inicio de eventos
+		$this->inicializaEventos();
+		
+		//ojito que si no le pones ip del servidor en el que estamos como segundo parametro, SOLO funcionara en local
+		$this->listen($this->puertoEscucha, $this->ipLocal); 
+		
+		return $this->miLoop->run();
+
+	}
 
 }
