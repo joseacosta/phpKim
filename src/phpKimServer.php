@@ -11,6 +11,9 @@ require __DIR__.'/../vendor/autoload.php';
 
 class phpKimServer extends React\Socket\Server
 {
+	protected $debug = true;
+	protected $debugToClient = true;
+	
 	
 	protected $miWsManager;
 	protected $miKimal;

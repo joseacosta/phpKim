@@ -5,6 +5,7 @@ function jsKimClient()
 	//that=this;
 	
 	this.conectado = false;
+	this.debug = true;
 	
 	
 
@@ -14,26 +15,32 @@ function jsKimClient()
 	{   
 		
 		this.wsUri = "ws://"+dir+":"+puerto;
+		this.serverUri = dir;
 		this.websocket = new WebSocket(this.wsUri);
 		
 		//cuando aludimos a "this" dentro del ambito de un evento de websocket o de click de boton HTML
 		//siempre estamos aludiendo al objeto websocket (en si) o al boton HTML, por lo tanto se pierde
-		//la referencia this de la instancia de esta clase, pararemediarlo le agregamos a los objetos
-		//que manejen eventos , en el momento de su creacion un atributo que ayude a acceder a la referecnia de esta instancia
-		this.websocket.referenciaThis = this;
+		//la referencia this de la instancia de esta clase, para remediarlo guardaremos la referencia del objeto
+		//al que debe hacer referencia "this" en una variable, y nos servimos de la funcion call para llamar a la funcion que deseemos
+		//dandole un conexto concreto para "this"
+		var that = this;
+		
+		//otro enfoque que use antes
+		//this.websocket.referenciaThis = this;
 		
 		$('#message_box').append("<div class=\"system_msg\">Abriendo conexion con "+this.wsUri+".......</div>");
 		
 		//manejadores de eventos del ws que acabamos de crear
 		this.websocket.onopen = function(ev) 
-								{ 
-									$('#message_box').append("<div class=\"system_msg\">Conectado!!! "+this.referenciaThis.wsUri+"</div>");
-									this.referenciaThis.conectado = true;
+								{  
+									//TODO DEPENDIENTE DE HTML!!!
+									$('#message_box').append("<div class=\"system_msg\">Conectado!!! "+that.wsUri+"</div>");
+									that.conectado = true;
 								};
-		
-		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión "+this.referenciaThis.wsUri+ " - "+ev.data+"</div>"); this.referenciaThis.conectado = false;  }; 
-		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+this.referenciaThis.wsUri+"</div>"); this.referenciaThis.conectado = false;  }; 
-		this.websocket.onmessage = function(ev){ this.referenciaThis.onServerMessage.call(this.referenciaThis, ev); };
+		//TODO DEPENDIENTEsss DE HTML!!!
+		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión "+that.wsUri+ " - "+ev.data+"</div>"); that.conectado = false;  }; 
+		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+that.wsUri+"</div>"); that.conectado = false;  }; 
+		this.websocket.onmessage = function(ev){ that.onServerMessage.call(that, ev); };
 	
 	}
 	
@@ -52,7 +59,7 @@ function jsKimClient()
 		{
 			var umsg = msg.message; //mensaje en si
 			var uname = msg.name; //concepto del mensaje
-			var ucolor = msg.color; //color
+			var ucolor = msg.color; //el servidor puede elegir color para el mensaje
 			
 			//TODO DEPENDIENTE DE HTML!!!
 			$('#message_box').append("<div><span class=\"user_name\" style=\"color:#"+ucolor+"\">"+uname+"</span> : <span class=\"user_message\">"+umsg+"</span></div>");
@@ -68,7 +75,7 @@ function jsKimClient()
 			
 			this.callPorNombre(funcName, args);
 		}	
-		else if(tipo == 'debugMsg')//TODO un interesantisimo recurso para el debug proveninete del servidor en un div...
+		else if(tipo == 'debugMsg')
 		{   
 			var servmsg = msg.message;
 			var serverIp= msg.server;
@@ -95,6 +102,7 @@ function jsKimClient()
 	
 	//-------------------------------------------------------------------
 	//se le pasa el id de un boton html y se vincula con una funcion que hayamos implementado en la clase
+	//acepta el nombre de la funcion (cadena)
 	this.registerButtonClickHandlerByName = function(idBoton, nombreFunc)
 	{
 		var laFuncion = this[nombreFunc];
@@ -120,12 +128,15 @@ function jsKimClient()
 		//para emular el comportamiento de la palabra reservada this en otros lenguajes cuando se maneja un evento
 		//vamosa hacer que el .click del boton llame al handler usando call para darle el contexto de "this" que nosotros queramos
 		//en otro caso "this" se referiria al propio elemento pulsado
-		$('#'+idBoton)[0].referenciaThis = this;
+		var that = this;
+		var sender = $('#'+idBoton);
 		
-		$('#'+idBoton).click( function(){laFuncion.call(this.referenciaThis, $('#'+idBoton)[0] ); } );
+		$('#'+idBoton).click( function(){laFuncion.call(that, sender ); } );
 	}
 	
 	//-------------------------------------------------------------------
+	//se le pasa el id de un boton html y se vincula con una funcion que hayamos implementado en la clase
+	//acepta el propio objeto de la funcion en s�
 	this.registerButtonClickHandler = function(idBoton, laFuncion)
 	{
 		
@@ -146,8 +157,8 @@ function jsKimClient()
 			return false
 		}
 		
-		that = this
-		sender = $('#'+idBoton);
+		var that = this;
+		var sender = $('#'+idBoton);
 		
 		$('#'+idBoton).click( function(){ laFuncion.call(that, sender); } );
 	}

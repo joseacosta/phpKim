@@ -6,11 +6,10 @@
 
 
 
-
-
 <script src="js/jquery-2.1.1.min.js"></script>
 <script src="js/jsKimClient.js"></script>
 <script src="js/extensionJsKimClient.js"></script>
+<script src="js/jsKimClientCollection.js"></script>
 
 <link href="css/estilo.css" rel="stylesheet" type="text/css">
 
@@ -20,17 +19,30 @@
 
 $(document).ready(	function()
 {
-	cliente = new miClase();
-	cliente2 = new miClase();
+	var cliente = new miClase();
+	var cliente2 = new miClase();
 	
-	cliente.connectServerWs("127.0.0.1", "12000");
-	cliente2.connectServerWs("192.168.0.145", "12000");
+	cliente.connectServerWs("192.168.0.145", "12000");
+	cliente2.connectServerWs("192.168.0.149", "12000");
 
 	
 	cliente.registerButtonClickHandlerByName("test-protocolo", "handlerBoton");
 
 	cliente2.registerButtonClickHandlerByName("test-protocolo2", "handlerBoton");
 
+	jsKimClientCollection.addClient(cliente);
+	jsKimClientCollection.addClient(cliente2);
+
+	
+	clienterecuperado = jsKimClientCollection.findClientByIndex(0);
+
+	console.log(clienterecuperado);
+
+	clienterecuperado.funcionCliente("jare", "peich");
+	
+	
+	
+	//Lo mismo pero usando funcion en lugar de nombre
 	//cliente2.registerButtonClickHandler("test-protocolo2", cliente2.handlerBoton);
 });
 

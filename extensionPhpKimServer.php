@@ -64,7 +64,7 @@ Class miServidorKimaldi extends phpKimServer
 		echo "\nllamaremos a un a funcion imitando a la API bioNet y veremos que devuelve\n";
 		
 		
-		$result = $this->ActivateRelay(3, 5);
+		$result = $this->ActivateDigitalOutput(3, 1);
 		//$result = $this->WriteDisplay("Hola Caracola");
 		//$result = $this->ClosePort();
 		
@@ -76,6 +76,7 @@ Class miServidorKimaldi extends phpKimServer
 		$this->responseClientFunction( "funcionCliente", array("valorarg3", "valorarg4") );
 		
 	}
+	
 	
 	
 }

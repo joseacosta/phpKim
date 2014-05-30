@@ -1,6 +1,6 @@
 
 
-//testtesttesttesttesttesttesttesttesttesttest-------------------------
+//TEST HERENCIA-------------------------
 
 //herencia#################
 jsKimClient.extender(miClase);
@@ -11,7 +11,7 @@ function miClase()
 	
 	this.funcionCliente = function(arg1, arg2)
 	{
-		alert("aqui estoy y tengo argumentos uno:"+arg1+" y otro:"+arg2);
+		alert("aqui estoy y tengo argumentos uno:"+arg1+" y otro:"+arg2+"y soy el cliente conectado a"+this.serverUri);
 	}
 	//--------
 	
