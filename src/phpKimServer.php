@@ -11,6 +11,7 @@ require __DIR__.'/../vendor/autoload.php';
 
 class phpKimServer extends React\Socket\Server
 {
+	//TODO manejar el envio opcional de mensajes debug
 	protected $debug = true;
 	protected $debugToClient = true;
 	

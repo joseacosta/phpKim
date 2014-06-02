@@ -5,6 +5,7 @@ function jsKimClient()
 	//that=this;
 	
 	this.conectado = false;
+	//TODO manejar la recepcion y muestra opcional de mensajes debug, igual mandar json de debug deberia ser iniciativa gestionada solo por el servidor
 	this.debug = true;
 	
 	
@@ -36,6 +37,7 @@ function jsKimClient()
 									//TODO DEPENDIENTE DE HTML!!!
 									$('#message_box').append("<div class=\"system_msg\">Conectado!!! "+that.wsUri+"</div>");
 									that.conectado = true;
+									that.onOpenWebsocket.call(that, ev);
 								};
 		//TODO DEPENDIENTEsss DE HTML!!!
 		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error ConexiÃ³n "+that.wsUri+ " - "+ev.data+"</div>"); that.conectado = false;  }; 
@@ -45,6 +47,11 @@ function jsKimClient()
 	}
 	
 	//-------------------------------------------------------------------
+	this. onOpenWebsocket = function(ev)
+	{
+		
+	}
+	//---------------------------------------------------------------------
 	
 	this.onServerMessage = function(ev)
 	{
@@ -109,7 +116,7 @@ function jsKimClient()
 		
 		if (typeof laFuncion != "function")
 		{
-			alert(" El nombre "+nombreFunc+" no parece pertenecer ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
+			alert(" Err. el nombre "+nombreFunc+" no parece pertenecer ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
 			return false;
 		}
 		
@@ -142,18 +149,18 @@ function jsKimClient()
 		
 		if (typeof laFuncion != "function")
 		{
-			alert(" El handler de click con no parece ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
+			alert("Err. el handler de click con no parece ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
 			return false;
 		}
 		
 		if($('#'+idBoton).length == 0)
 		{
-			alert ("elemento con id \""+idBoton+"\" inexistente, o todavia no cargado");
+			alert ("Err. elemento con id \""+idBoton+"\" inexistente, o todavia no cargado");
 			return false
 		}
 		if($('#'+idBoton).length > 1)
 		{
-			alert ("elementos con id \""+idBoton+"\" existe duplicidad en el uso de id, debería ser único");
+			alert ("Err. mas de un elemento con id \""+idBoton+"\" existe duplicidad en el uso de id, debería ser único");
 			return false
 		}
 		
@@ -164,12 +171,13 @@ function jsKimClient()
 	}
 	
 	//-------------------------------------------------------------------
-	
+	//Permite llamar a una funcion (en la clase receptora definida en el servidor) por su nombre, pasandole, ademas un array de argumentos
+	//se sirve para ello del protocolo definido como interfaz entre el cliente browser y el servidor
 	this.callFuncServer = function(funcServerName, args)
 	{
 		if(!this.conectado)
 		{
-			alert("err. cliente no conectado con el servidor ws con URI:"+this.wsUri+" (llamada callFuncServer, clase: "+this.constructor.name+")");
+			alert("Err. cliente no conectado con el servidor ws con URI:"+this.wsUri+" (llamada callFuncServer, clase: "+this.constructor.name+")");
 			return;
 		}
 		
@@ -187,14 +195,14 @@ function jsKimClient()
 	
 	//-------------------------------------------------------------------
 	
-	//permite llamar a una funcion por su nombre, pasandole, ademas un array de argumentos
+	//Permite llamar a una funcion (de esta misma clase, en el cliente) por su nombre, pasandole, ademas un array de argumentos
 	this.callPorNombre = function(nombre, args)
 	{  
 		var laFuncion = this[nombre];
 											
 		if (typeof laFuncion != "function")
 		{
-			alert(nombre+", no parece ser una funcion válida (llamada callPorNombre, clase: "+this.constructor.name+")");
+			alert("Err. "+nombre+", no parece ser una funcion válida (llamada callPorNombre, clase: "+this.constructor.name+")");
 			return false;
 		}
 										

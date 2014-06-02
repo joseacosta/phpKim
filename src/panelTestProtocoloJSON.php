@@ -33,13 +33,8 @@ $(document).ready(	function()
 	jsKimClientCollection.addClient(cliente);
 	jsKimClientCollection.addClient(cliente2);
 
-	
-	clienterecuperado = jsKimClientCollection.findClientByIndex(0);
-
-	console.log(clienterecuperado);
-
-	clienterecuperado.funcionCliente("jare", "peich");
-	
+	//timepo para conectarse
+	//setTimeout(  function(){ jsKimClientCollection.callFuncServerByIp("192.168.0.145", "nuevaFuncion", ["cosa1", "cosa2"]);  }, 3000);
 	
 	
 	//Lo mismo pero usando funcion en lugar de nombre

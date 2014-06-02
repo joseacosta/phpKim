@@ -67,6 +67,14 @@ function miClase()
 	    $('#casiDIN'+numeroCasilla).css( "background-color", "white" );
 	}
 	
+	//---------------
+	
+	//override del onOPenWebsocket
+	this.onOpenWebsocket= function()
+	{
+		//alert("capturo el onload, mira la consola");
+		//console.log(this);
+	}
 	
 	
 }

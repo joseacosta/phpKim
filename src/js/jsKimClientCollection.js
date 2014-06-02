@@ -2,10 +2,17 @@
 var jsKimClientCollection = {
 		
 		"addClient": function (cliente){
+			
+			if (cliente instanceof jsKimClient == false)
+			{
+				alert("Err. se intento agregar a la coleccion de clientes un objeto inadecuado (instancia de:"+cliente.constructor.name+"), se requieren instancias de la clase jsKimClient o derivadas: (Llamada addClient(), obj: jsKimClientCollection)");
+				return false;
+			}
+			
 			this.clients.push(cliente);
 		},
 		
-		//lo retira de la coleccion pero no elimina rl objeto
+		//lo retira de la coleccion pero no elimina el objeto
 		"removeClient": function (cliente){
 			
 			this.clients = $.grep(this.clients, function(elem) 
@@ -15,7 +22,7 @@ var jsKimClientCollection = {
 			
 		},
 		
-		
+		//lo retira de la coleccion pero no elimina el objeto
 		"removeClientByServerIp": function (ip){
 			
 			this.clients = $.grep(this.clients, function(elem) 
@@ -55,6 +62,35 @@ var jsKimClientCollection = {
 		"getClientCount": function(){
 			
 			return this.clients.length;
+			
+		},
+		
+		"callFuncServerMasivo": function(funcServerName, args){
+			
+			var numCli = this.clients.length;
+			
+			for (var x = 0; x < numCli; x++)
+			{
+				this.clients[x].callFuncServer(funcServerName, args);
+			}
+			
+			
+		},
+		
+		"callFuncServerByIp": function(ip, funcServerName, args){
+			
+			var cli = this.findClientByServerIp(ip);
+			
+			if (!cli)
+			{
+				return false;
+			}
+			else
+			{
+				cli.callFuncServer(funcServerName, args);
+				return true;
+			}
+			
 			
 		},
 		
