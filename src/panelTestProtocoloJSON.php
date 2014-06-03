@@ -19,19 +19,30 @@
 
 $(document).ready(	function()
 {
+	
+	
+	
 	var cliente = new miClase();
 	var cliente2 = new miClase();
 	
-	cliente.connectServerWs("192.168.0.145", "12000");
-	cliente2.connectServerWs("192.168.0.149", "12000");
-
 	
 	cliente.registerButtonClickHandlerByName("test-protocolo", "handlerBoton");
 
 	cliente2.registerButtonClickHandlerByName("test-protocolo2", "handlerBoton");
 
+	jsKimClientCollection.onClientCollectionConnected = function(){alert("evento: todos los clientes estan conectados")};
+	
 	jsKimClientCollection.addClient(cliente);
 	jsKimClientCollection.addClient(cliente2);
+
+	cliente2.onOpenWebsocket= function()
+	{   
+		alert("capturo el onload, mira la consola");
+		console.log(this);
+	}
+
+	cliente.connectServerWs("192.168.0.145", "12000");
+	cliente2.connectServerWs("192.168.0.149", "12000");
 
 	//timepo para conectarse
 	//setTimeout(  function(){ jsKimClientCollection.callFuncServerByIp("192.168.0.145", "nuevaFuncion", ["cosa1", "cosa2"]);  }, 3000);

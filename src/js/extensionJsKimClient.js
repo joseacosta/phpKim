@@ -71,7 +71,10 @@ function miClase()
 	
 	//override del onOPenWebsocket
 	this.onOpenWebsocket= function()
-	{
+	{   
+	    //un poco como usar base
+		//miClase.prototype.onOpenWebsocket();
+		
 		//alert("capturo el onload, mira la consola");
 		//console.log(this);
 	}

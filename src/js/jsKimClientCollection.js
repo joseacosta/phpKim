@@ -9,7 +9,32 @@ var jsKimClientCollection = {
 				return false;
 			}
 			
+			//esta funcion es llamada por el objeto cuando su websocket esta listo, vamos implementarle 
+			//un poco de codigo para controlar el momento en el que todos esten cargados
+			
+			var objColeccion = this;
+			
+			cliente.addReadyClientToCollection = function()
+													{   
+														objColeccion.nuevoClienteListo();
+													}
+			
 			this.clients.push(cliente);
+			
+		},
+		
+		//evento lanzado por un cliente de la coleccion que se ha conectado
+		"nuevoClienteListo": function (){
+			
+			var numDesconectados = this.getDisconnectedClients().length;
+			
+			console.log("nuevo cliente de la coleccion conectado conexiones pendientes..."+numDesconectados);
+			
+			//estan todos listos
+			if (numDesconectados == 0)
+			{
+				this.onClientCollectionConnected();
+			}
 		},
 		
 		//lo retira de la coleccion pero no elimina el objeto
@@ -46,6 +71,29 @@ var jsKimClientCollection = {
 				return arrayCoincidentes[0];
 			else
 				return false;
+			
+		},
+		
+		"getDisconnectedClients": function (){
+			
+			var arrayCoincidentes = $.grep(this.clients, function(elem) 
+									{
+								        return elem.conectado == false;
+								    });
+			
+			return arrayCoincidentes;
+			
+		},
+		
+		
+		"getConnectedClients": function (){
+			
+			var arrayCoincidentes = $.grep(this.clients, function(elem) 
+									{
+								        return elem.conectado == true;
+								    });
+			
+			return arrayCoincidentes;
 			
 		},
 		
@@ -94,6 +142,12 @@ var jsKimClientCollection = {
 			
 		},
 		
+		//evento lanzado cuando todos los clientes de la lista se han cargado
+		"onClientCollectionConnected": function(){
+			console.log("todos los clientes estan conectados, funcion onClientCollectionConnected sin implementacion");
+		},
+		
+		//coleccion de clientes, objetos jsKimCient o derivados
 		"clients" : []
 
 };

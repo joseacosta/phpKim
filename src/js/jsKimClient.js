@@ -6,7 +6,9 @@ function jsKimClient()
 	
 	this.conectado = false;
 	//TODO manejar la recepcion y muestra opcional de mensajes debug, igual mandar json de debug deberia ser iniciativa gestionada solo por el servidor
-	this.debug = true;
+	this.debugServer = true;
+	
+	this.debugClient;
 	
 	
 
@@ -38,6 +40,7 @@ function jsKimClient()
 									$('#message_box').append("<div class=\"system_msg\">Conectado!!! "+that.wsUri+"</div>");
 									that.conectado = true;
 									that.onOpenWebsocket.call(that, ev);
+									that.addReadyClientToCollection.call(that);
 								};
 		//TODO DEPENDIENTEsss DE HTML!!!
 		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión "+that.wsUri+ " - "+ev.data+"</div>"); that.conectado = false;  }; 
@@ -47,9 +50,16 @@ function jsKimClient()
 	}
 	
 	//-------------------------------------------------------------------
+	//se llama en el .onOpen del websocket
 	this. onOpenWebsocket = function(ev)
 	{
-		
+		//implementar en clase heredera
+	}
+	//-------------------------------------------------------------------
+	//se llama en el .onOpen del websocket, esta pensada para ser implementada por el objeto de coleccion de clientes, manejara cada evento de conexion para controlar cuando esten todas listas
+	this.addReadyClientToCollection = function(ev)
+	{
+		//implementada en objeto jsKimCientCollection
 	}
 	//---------------------------------------------------------------------
 	
