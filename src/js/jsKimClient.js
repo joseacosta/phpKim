@@ -5,6 +5,8 @@ function jsKimClient()
 	//that=this;
 	
 	this.conectado = false;
+	this.conectandose = false;
+	
 	//TODO manejar la recepcion y muestra opcional de mensajes debug, igual mandar json de debug deberia ser iniciativa gestionada solo por el servidor
 	this.debugServer = true;
 	
@@ -16,6 +18,13 @@ function jsKimClient()
 	
 	this.connectServerWs = function(dir, puerto)
 	{   
+		if(this.conectado || this.conectandose)
+		{
+			alert("el cliente que intenta conectar con ws://"+dir+":"+puerto+" ya se encuentra conectado, o esta en proceso, con "+this.wsUri);
+			return false;
+		}
+		
+		this.conectandose = true;
 		
 		this.wsUri = "ws://"+dir+":"+puerto;
 		this.serverUri = dir;
@@ -39,22 +48,52 @@ function jsKimClient()
 									//TODO DEPENDIENTE DE HTML!!!
 									$('#message_box').append("<div class=\"system_msg\">Conectado!!! "+that.wsUri+"</div>");
 									that.conectado = true;
+									that.conectandose = false;
 									that.onOpenWebsocket.call(that, ev);
 									that.addReadyClientToCollection.call(that);
 								};
+								
 		//TODO DEPENDIENTEsss DE HTML!!!
-		this.websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error ConexiÃ³n "+that.wsUri+ " - "+ev.data+"</div>"); that.conectado = false;  }; 
-		this.websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+that.wsUri+"</div>"); that.conectado = false;  }; 
+		this.websocket.onerror	= function(ev)
+								  {
+									$('#message_box').append("<div class=\"system_error\">Error ConexiÃ³n "+that.wsUri+ " - "+ev.data+"</div>"); 
+									that.conectado = false; 
+									that.conectandose = false;
+									that.onErrorWebsocket.call(that, ev); 
+								  }; 
+								  
+		this.websocket.onclose 	= function(ev)
+								  {
+									$('#message_box').append("<div class=\"system_msg\">Conexion cerrada "+that.wsUri+"</div>"); 
+									that.conectado = false;  
+									that.conectandose = false;
+									that.onCloseWebsocket.call(that, ev);
+								  }; 
+								  
 		this.websocket.onmessage = function(ev){ that.onServerMessage.call(that, ev); };
 	
 	}
 	
 	//-------------------------------------------------------------------
-	//se llama en el .onOpen del websocket
-	this. onOpenWebsocket = function(ev)
+	//es llamada en el .onOpen del websocket
+	this.onOpenWebsocket = function(ev)
 	{
 		//implementar en clase heredera
 	}
+	//-------------------------------------------------------------------
+	//es llamada en el .onError del websocket
+	this.onErrorWebsocket = function(ev)
+	{
+		//implementar en clase heredera
+	}
+	//-------------------------------------------------------------------
+	//es llamada en el .onClose del websocket
+	this.onCloseWebsocket = function(ev)
+	{
+		//implementar en clase heredera
+	}
+	
+	
 	//-------------------------------------------------------------------
 	//se llama en el .onOpen del websocket, esta pensada para ser implementada por el objeto de coleccion de clientes, manejara cada evento de conexion para controlar cuando esten todas listas
 	this.addReadyClientToCollection = function(ev)
@@ -116,6 +155,37 @@ function jsKimClient()
 		$('#message').val(''); //reset text
 		
 	}
+	//-------------------------------------------------------------------
+	//se le pasa un objeto jQuery se vincula con una funcion que hayamos implementado en la clase
+	//acepta el nombre de la funcion (cadena)
+	//Notese que el objeto JQuery puede ser toda una coleccion a la que se enlacara el manejador de click
+	//el sender es en cualquier caso recuperable
+	this.registerJqueryClickHandlerByName = function(objJquery, nombreFunc)
+	{
+		var laFuncion = this[nombreFunc];
+		
+		if (typeof laFuncion != "function")
+		{
+			alert(" Err. el nombre "+nombreFunc+" no parece pertenecer ser una funcion vï¿½lida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
+			return false;
+		}
+		
+		
+		if(!objJquery instanceof jQuery)
+		{
+			alert ("elemento \""+idBoton+"\" no parece ser un objeto jquery valido");
+			return false
+		}
+	
+		
+		//El ev.target (dentro del conexto del click de jQuery) sera el SENDER que espera recibir como argumento nuestro handler de evento
+		//para emular el comportamiento de la palabra reservada this en otros lenguajes cuando se maneja un evento
+		//vamosa hacer que el .click del boton llame al handler usando call para darle el contexto de "this" que nosotros queramos
+		//en otro caso "this" se referiria al propio elemento pulsado
+		var that = this;
+		
+		objJquery.click( function(event){ laFuncion.call( that, $(event.target) ); } );
+	}
 	
 	//-------------------------------------------------------------------
 	//se le pasa el id de un boton html y se vincula con una funcion que hayamos implementado en la clase
@@ -126,7 +196,7 @@ function jsKimClient()
 		
 		if (typeof laFuncion != "function")
 		{
-			alert(" Err. el nombre "+nombreFunc+" no parece pertenecer ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
+			alert(" Err. el nombre "+nombreFunc+" no parece pertenecer ser una funcion vï¿½lida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
 			return false;
 		}
 		
@@ -137,7 +207,7 @@ function jsKimClient()
 		}
 		if($('#'+idBoton).length > 1)
 		{
-			alert ("elementos con id \""+idBoton+"\" existe duplicidad en el uso de id, debería ser único");
+			alert ("elementos con id \""+idBoton+"\" existe duplicidad en el uso de id, deberï¿½a ser ï¿½nico");
 			return false
 		}
 		
@@ -153,13 +223,13 @@ function jsKimClient()
 	
 	//-------------------------------------------------------------------
 	//se le pasa el id de un boton html y se vincula con una funcion que hayamos implementado en la clase
-	//acepta el propio objeto de la funcion en sí
+	//acepta el propio objeto de la funcion en sï¿½
 	this.registerButtonClickHandler = function(idBoton, laFuncion)
 	{
 		
 		if (typeof laFuncion != "function")
 		{
-			alert("Err. el handler de click con no parece ser una funcion válida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
+			alert("Err. el handler de click con no parece ser una funcion vï¿½lida (llamada registerButtonClickHandlerByName, clase: "+this.constructor.name+")");
 			return false;
 		}
 		
@@ -170,7 +240,7 @@ function jsKimClient()
 		}
 		if($('#'+idBoton).length > 1)
 		{
-			alert ("Err. mas de un elemento con id \""+idBoton+"\" existe duplicidad en el uso de id, debería ser único");
+			alert ("Err. mas de un elemento con id \""+idBoton+"\" existe duplicidad en el uso de id, deberï¿½a ser ï¿½nico");
 			return false
 		}
 		
@@ -212,7 +282,7 @@ function jsKimClient()
 											
 		if (typeof laFuncion != "function")
 		{
-			alert("Err. "+nombre+", no parece ser una funcion válida (llamada callPorNombre, clase: "+this.constructor.name+")");
+			alert("Err. "+nombre+", no parece ser una funcion vï¿½lida (llamada callPorNombre, clase: "+this.constructor.name+")");
 			return false;
 		}
 										
