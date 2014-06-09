@@ -1,18 +1,35 @@
 <?php
 //php htdocs/phpkimaldi/testReact/extensionPhpKimServer.php
+//php C:\xampp\htdocs\pyt\phpKimServer\phpKim\extensionPhpKimServer.php
 
+require_once 'Configuracion.php';
 require_once 'src/phpKimServer.php';
 
 //extendemos la clase libremente
 Class miServidorKimaldi extends phpKimServer
 {
 	
-	//override metodo
+	private $conexionDB;
+	
+	
+	//#########CONSTRUCTOR
+	//importante, si queremos hacer override del constructor es importante que llamemos siempre primero al constructor del padre
+	public function __construct()
+	{
+		//constructor del padre
+		parent::__construct();
+		
+		//inicializamos la conexion con la base de datos
+		$this->conexionDB = new mysqli(Configuracion::$bdServer,Configuracion::$bdUsuario,Configuracion::$bdPass,Configuracion::$baseDatos);
+		
+	}
+	
+	//override metodo de evento
 	function OnTrack($track)
 	{
 		echo "\nEvento onTrack lanzado!!! track:".$track;
 		
-		$this->TestNodeLink();
+		//$this->TestNodeLink();
 		
 		
 		//acceso a datos funciona perfect, pero produciendo bloqueo como es logico
@@ -90,7 +107,8 @@ $servKimaldi = new miServidorKimaldi();
 
 //conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
 $valorconexion = $servKimaldi->OpenPortTCP("192.168.123.10");
-//$servKimaldi->OpenPortTCP("127.0.0.1");
+//probando conexion con uart2 de la electronica y ser2net en la raspberrry
+//$valorconexion = $servKimaldi->OpenPortTCP("192.168.1.133", 4001);
 	
 echo "\nvalor de conexion devuelto por openporttcp:".$valorconexion."\n";
 

@@ -467,8 +467,6 @@ class phpKimServer extends React\Socket\Server
 	function manda_comando_electronica($trama, $opcRespuestaEsperado=null)
 	{
 		
-
-
 		if ($this->conexElectronica == null)
 		{
 			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible mandar tramas\n";
@@ -551,6 +549,7 @@ class phpKimServer extends React\Socket\Server
 		
 		//las respuestas Ans normales al fin y al cabo son tratados como eventos (tipo ANS), ya hem,os hecho los controles de sincronizacion que necesitabamos
 		//para que sigan el curso normal de un evento, vamos a pasarla a la funcion que trata los eventos espontaneos
+		//TODO ojito aqui no deberias propagar el bufer como evento si resulta que este esta vacio, en un node time out p ej
 		$this->onDataElectronica($bufer);
 		
 		//llegado aqui todo ok (algunos errores hacen que se sigapropagando el valor "todo ok" pero aun asi se lanzan eventos de error)
