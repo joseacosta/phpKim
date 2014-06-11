@@ -118,10 +118,11 @@ class phpKimServer extends React\Socket\Server
 		$this->dirIPElectronica = $dirIPElectronica;
 		$this->puertoElectronica = $puertoElectronica;
 		
-		//stream que conecta con la electronica, ojo al cuarto parametro que es el timeout para conectar
-		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
 		
 		echo "\n\nConectando con electronica tcp://".$this->dirIPElectronica.":".$this->puertoElectronica.".......";
+		
+		//stream que conecta con la electronica, ojo al cuarto parametro que es el timeout para conectar
+		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
 		
 		//un timeout para lectura  cuando hacemos bloqueos leyendo uan respuesta de ella
 		//esta funcion produce BLOQUEO
@@ -415,7 +416,6 @@ class phpKimServer extends React\Socket\Server
 		$mensaje_response_cliente = $this->miWsManager->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
 		
 		
-		//TODO testar esto
 		if($ipClienteConcreto != null)
 		{
 			foreach ($this->conns as $conUsu)
@@ -1078,6 +1078,8 @@ class phpKimServer extends React\Socket\Server
 		
 		//ojito que si no le pones ip del servidor en el que estamos como segundo parametro, SOLO funcionara en local
 		$this->listen($this->puertoEscucha, $this->ipLocal); 
+		
+		echo "\nServidor de sockets Activo, escucha en: ".$this->ipLocal.":".$this->puertoEscucha."\n"; 
 		
 		return $this->miLoop->run();
 

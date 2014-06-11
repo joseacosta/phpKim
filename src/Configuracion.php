@@ -16,15 +16,15 @@ class Configuracion
 	public static $timeoutNodeTimeOut = 3;
 	
 	//parametros de servidor WebSocket
-	//public static $ipLocalServer = '192.168.0.145';
-	public static $ipLocalServer = '192.168.1.128';
+	public static $ipLocalServer = '192.168.0.145';
+	//public static $ipLocalServer = '192.168.1.128';
 	public static $puertoEscuchaServer = 12000;
 	
 
 	
 	//definiciones de base de datos, solo para el caso eventual de acceso a un servicio de BD
 	//public static $bdServer = '192.168.0.145';
-	public static $bdServer = "192.168.1.128";
+	public static $bdServer = "localhost";
 	public static $bdUsuario = "root";
 	public static $bdPass = "";
 	public static $baseDatos = "kimalditest";
