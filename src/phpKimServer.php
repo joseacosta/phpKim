@@ -11,9 +11,10 @@ require __DIR__.'/../vendor/autoload.php';
 
 class phpKimServer extends React\Socket\Server
 {
-	//TODO manejar el envio opcional de mensajes debug
-	protected $debug = true;
-	protected $debugToClient = true;
+	
+	protected $debug_client_mode;
+	
+	protected $debug_log_mode;
 	
 	
 	protected $miWsManager;
@@ -64,6 +65,9 @@ class phpKimServer extends React\Socket\Server
 		parent::__construct($this->miLoop);
 		
 		
+		
+		$this->debug_client_mode = Configuracion::$debug_client_mode;
+		$this->debug_log_mode = Configuracion::$debug_log_mode;
 		
 		$this->ipLocal = Configuracion::$ipLocalServer;
 		$this->puertoEscucha = Configuracion::$puertoEscuchaServer;
@@ -119,7 +123,7 @@ class phpKimServer extends React\Socket\Server
 		$this->puertoElectronica = $puertoElectronica;
 		
 		
-		echo "\n\nConectando con electronica tcp://".$this->dirIPElectronica.":".$this->puertoElectronica.".......";
+		$this->controlEchoDebugServer("Conectando con electronica tcp://".$this->dirIPElectronica.":".$this->puertoElectronica.".......");
 		
 		//stream que conecta con la electronica, ojo al cuarto parametro que es el timeout para conectar
 		$clientStreamElectronica = stream_socket_client("tcp://".$this->dirIPElectronica.":".$this->puertoElectronica, $errno, $errorMessage, $this->timeoutConnElectronica );
@@ -207,9 +211,9 @@ class phpKimServer extends React\Socket\Server
 			$this->evaluaEvento( $desgloseTrama["OPC"] , $desgloseTrama["ARG"]);
 		} 
 		
-		$mensaje_electronica = $this->miWsManager->mask(json_encode(array('tipo'=>'userMsg', 'name'=>'Ev', 'message'=>$data, 'color'=>'black')));
-		
-		$this->mandarTodosUsuarios($mensaje_electronica); //send data
+		//informamos del Evento recibido desde la tarjeta
+		//mandar trama debug a todos los clientes, por si quieren monitorizar
+		$this->debugFrameToClient("Evento: ".$data, null);
 	}
 	
 	//--------------------------------------------------------------------------
@@ -351,7 +355,7 @@ class phpKimServer extends React\Socket\Server
 						}
 						
 					}
-					elseif (isset($tst_msg->tipo) && $tst_msg->tipo == 'userMsg')//el usuario manda mensage normal (es solo texto plano)
+					elseif (isset($tst_msg->tipo) && $tst_msg->tipo == 'userMsg')//el usuario manda mensage normal (es solo texto plano) comunicacion inter-clientes
 					{
 						$ipRemitente =	$connCliente->getRemoteAddress();
 											
@@ -367,7 +371,7 @@ class phpKimServer extends React\Socket\Server
 					}
 					else 
 					{
-						echo "\nel cliente con ip: ".$connCliente->getRemoteAddress()." envio trama JSON sin formato adecuado (campo tipo)\n";
+						echo "\nel cliente con ip: ".$connCliente->getRemoteAddress()." envio trama sin formato adecuado (se precisa JSON y campo tipo)\n";
 					}
 					
 					
@@ -503,9 +507,8 @@ class phpKimServer extends React\Socket\Server
 		{
 			echo "\n\nTIMEOUT\n\n";
 			
-			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso
-			$mensaje_debug= $this->miWsManager->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>" NodeTimeOut")));
-			$this->conClienteActivoBloqueaRespuesta->write($mensaje_debug);
+			//esto es simplemente para el monitor del cliente, se manda el mensaje de NodeTimeOut solo al cliente que inicio este proceso y causo este timeout
+			$this->debugFrameToClient("...NodeTimeOut", $this->conClienteActivoBloqueaRespuesta);
 			
 			//kimaldi_net no parece tener ningun codigo de devolucion para esto, comprobado que acaba devolviendo 0 (func ok)
 			//pero va a saltar un evento de error que podra ir implemnetado en la clase heredera, aqui solo se maneja
@@ -517,12 +520,11 @@ class phpKimServer extends React\Socket\Server
 			//aqui se deberian ir mandando los eventos Ans... definirian en la clase heredera aqui habria un "procesaAns...()", antes, esta funcion propagara el valor 0
 			//a la funcion que la haya llamado
 			//si no se recibe ans con el opc esperado (un evento se entromete, puede ocurrir)  deberiamos repetir lectura y bloqueo, (en este caso el tiempo del NodeTimeOut volveria a cero :?)
-			echo "\nlectura post-bloqueo!!!#".$bufer."#\n\n\n";
+			echo "\nLectura post-bloqueo!!!#".$bufer."#\n\n\n";
 			
-			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso
-			$mensaje_debug= $this->miWsManager->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=>"Respuesta Ans:".$bufer)));
+			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso, se le informa de que su accion ha tenido una respuesta especifica desde la electronica
+			$this->debugFrameToClient("Respuesta Ans:".$bufer, $this->conClienteActivoBloqueaRespuesta);
 			
-			$this->conClienteActivoBloqueaRespuesta->write($mensaje_debug);
 			
 			$opc = $this->miKimal->dameOpcTrama($bufer);
 			
@@ -1068,7 +1070,35 @@ class phpKimServer extends React\Socket\Server
 	*
 	*/
 	
-	//--------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
+	//mandara tramas de diagnostico para ser monitorizadas en el mismo navegador
+	//puede que en produccion produzcan un trafico innecesario, se pueden mandar a un cliente concreto
+	//precisa parametro clase Connection de ReactPHP o bien a todos (param1 = null)
+	public function debugFrameToClient($texto, $connClient)
+	{
+		$mensaje_debug= $this->miWsManager->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=> $texto)));
+		
+		if ($connClient == null)
+		{
+			$this->mandarTodosUsuarios($mensaje_debug);
+		}
+		else 
+		{
+			$connClient->write($mensaje_debug);
+		}
+		
+	}
+	//---------------------------------------------------------------------------
+	//TODO calcular los milisegundos podrian comprometer la performance
+	public function controlEchoDebugServer($msg, $agregaSaltoLinea = true)
+	{
+		if($agregaSaltoLinea)
+			echo "\n\n".round(microtime(true) * 1000).": ".$msg."\n\n";
+		else
+			echo $msg;
+	}
+	
+	//---------------------------------------------------------------------------
 	
 	public function Run()
 	{

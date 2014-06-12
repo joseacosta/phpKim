@@ -50,8 +50,8 @@ class WsServerManager
 	 */
 	function mensajeEsDeApertura($mensaje)
 	{
-	
-		if( strpos( $mensaje, "Upgrade: websocket") > -1  )
+		//ojo al matiz stripos es igual a strpos pero insensible a mayusculas
+		if( stripos( $mensaje, "Upgrade: websocket") > -1 )
 		{
 			return true;
 		}

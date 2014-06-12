@@ -29,4 +29,11 @@ class Configuracion
 	public static $bdPass = "";
 	public static $baseDatos = "kimalditest";
 	
+	
+	//con esta directiva activada el servidor mandara a cada cliente tramas de diagnostico para ser monitorizadas en el mismo navegador
+	//puede que en produccion produzcan un trafico innecesario
+	public static $debug_client_mode = true;
+	
+	public static $debug_log_mode = true;
+	
 }
