@@ -15,7 +15,7 @@ Class miServidorKimaldi extends phpKimServer
 	
 	
 	//#########CONSTRUCTOR
-	//IMPORTANTE, si queremos hacer override del constructor es importante que llamemos siempre primero al constructor del padre
+	//IMPORTANTE, si queremos hacer override del constructor es necesario que llamemos siempre primero al constructor del padre
 	public function __construct()
 	{
 		//llamar constructor del padre IMPORTANTE
@@ -35,8 +35,11 @@ Class miServidorKimaldi extends phpKimServer
 		echo "\nEvento onTrack lanzado!!! track:".$track;
 		
 
-		//Primero controlamos si el nodo tiene asociada una taquilla en la bd
-		$result = $this->conexionDB->query("SELECT id_taquillas from taquillas where ip_nodo = '".$this->ipLocal."'");
+		//###Primero controlamos si el nodo tiene asociada una taquilla en la bd y guardo su id
+		$result = $this->conexionDB->query("SELECT id_taquillas 
+											from taquillas 
+											where ip_nodo = '".$this->ipLocal."'");
+		
 		if ($result->num_rows == 0)
 		{
 			echo "\nNo existe taquilla en la logica de la BD asociada a este nodo con IP: ".$this->ipLocal."\n\n";
@@ -50,9 +53,10 @@ Class miServidorKimaldi extends phpKimServer
 		//----------
 		
 		
-		//Segundo controlamos, mirando el numero de tarjeta, cual es el empleado
+		//###Segundo controlamos, mirando el numero de tarjeta, cual es el empleado que la posee
 		$result = $this->conexionDB->query("SELECT id_empleados 
-											from empleados where num_tarjeta = '".$track."'");
+											from empleados 
+											where num_tarjeta = '".$track."'");
 		
 		if ($result->num_rows == 0)
 		{
@@ -68,7 +72,7 @@ Class miServidorKimaldi extends phpKimServer
 		
 		
 		
-		//Tercero, controlamos, mirando el id de empleado y el id de taquilla, si el empleado es POSEEDOR de esa taquilla
+		//###Tercero, controlamos, mirando el id de empleado y el id de taquilla, si el empleado es POSEEDOR de esa taquilla
 		//segun la logica de la base de datos
 		$result = $this->conexionDB->query("SELECT id_empleados 
 											from empleados 
@@ -83,7 +87,7 @@ Class miServidorKimaldi extends phpKimServer
 		
 		
 		
-		//Cuarto, por fin!!! producimos apertura de taquilla, relé 0,  5 decimas de segundo (son numeros hexa)
+		//###Cuarto, por fin!!! producimos apertura de taquilla, relé 0,  5 decimas de segundo (son numeros hexa)
 		echo "\nEmpleado y Tarjeta autenticados para la taquilla de este nodo, se procede a la apertura de puerta\n\n";
 		$resultadoActivateRelay = $this->ActivateRelay(0, 5);
 		
@@ -134,15 +138,13 @@ Class miServidorKimaldi extends phpKimServer
 		
 	}
 	
-	
-	
 	//--------------------------------------------------------
 	//override metodo de evento de respuesta
 	function AnsTestNodeLink()
 	{
 		echo "\nEvento de respuesta AnsTestNodeLink lanzado!!!";
 		
-		//la func response solo respnde al cliente que mando la trama que origino la esta repsuesta
+		//la func response solo responde al cliente que mando la trama que origino la esta respuesta
 		$this->responseClientFunction( "clienteAnsTestNodeLink", array() );
 	}
 	
@@ -162,7 +164,7 @@ Class miServidorKimaldi extends phpKimServer
 	function serverEvaluaConnElectronica()
 	{
 		//hacemos un TestNodeLink, evaluamos el valor que devuelve la funcion 1 = puerto conn TCP no abierta
-		//notese que en caso de evento NodeTimOut el servidor tiene implementado codigo para responder al cliente consecuentemente
+		//notese que en caso de evento NodeTimeOut el servidor tiene implementado codigo para responder al cliente consecuentemente
 		
 		$valor = $this->TestNodeLink();
 		
@@ -206,7 +208,8 @@ $servKimaldi = new miServidorKimaldi();
 
 
 //conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
-$valorconexion = $servKimaldi->OpenPortTCP("192.168.123.10");
+$valorconexion = $servKimaldi->OpenPortTCP( Configuracion::$ipElectronica );
+
 //probando conexion con uart2 de la electronica y ser2net en la raspberrry
 //$valorconexion = $servKimaldi->OpenPortTCP("192.168.1.133", 4001);
 	
