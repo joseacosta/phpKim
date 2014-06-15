@@ -1,85 +1,22 @@
 <?php 
 
 //sera asbtract class 
-class KimalPHP
+class KimaldiFrameGenerator
 {
 	
-	public $phase;
-	protected  $esperandoRespuestaInmediada = false; 
 	private $STX;
 	private $EXT;
 	
 	
 	
 	
-	
 	function __construct() 
 	{ 
-		$this->phase=1;
-		
 		$this->STX = chr(0x02);
 		$this->EXT = chr(0x03);
 	}
 	
-/*
-	//ev Arranque de la electronica
-	abstract protected function OnReset($data);
 	
-	
-	//ev  Lectura de tarjeta
-	abstract protected function OnReadCard($card_id);
-	
-	
-	//ev  presion de tecla
-	abstract protected function OnKeyPress($key);
-	
-	
-	//el LED y el beeper cuando finaliza la temporizacion general el evento
-	//Salidas Digitales (la electronica necesita estar bien configurada)
-	abstract protected function OnTempLED($color, $time); //time??
-	
-	//el LED y el beeper cuando finaliza la temporizacion genera el evento
-	//Salidas Digitales (la electronica necesita estar bien configurada)
-	abstract protected function OnTempBeeper($beeper, $time); //time?
-	
-	
-	//esto es cosecha propia, evento con OPC 0x40 es MUY MUY parecido arl de arriba, NECESITA AUN ser gestionado en elmetodo process_events
-	//la activacion de un relay cuando finaliza la temporizacion genera el evento salidas de Relé
-	abstract protected function OnTempRelay($numRelay, $time);
-	
-	//evento deentrada digital
-	abstract protected function OnDigitalInput($status);
-
-	//cualquier otro...comodin
-	abstract protected function OnDefault($data);
-
-*/	
-	
-	
-	
-	
-	
-	//---------------------------------------------------------------------
-	
-	private function processCommand($opc, $data)
-	{
-		//no existe aun
-		$respuesta = $this->sendCommand($opc, $data);
-		
-		
-		#aqui se genera el frame
-		$elFrame = $this->createFrame($opc, $data);
-		
-		#en este metodo (por fin) se manda el frame por el socket
-		$this->sendFrame(elFrame);
-		
-		//hay respuestas de comandos yeventos que comparten opc
-		//podriamos estar tratando tramas como eventos sin serlo, 
-		//esta variable podria en vez de un booleano contener el numero opc de trama esperada, seria quizas mas preciso
-		$this->esperandoRespuestaInmediada = True;
-		
-
-	}
 	
 	//---------------------------------------------------------------------
 	

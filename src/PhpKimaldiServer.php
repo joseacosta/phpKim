@@ -1,7 +1,7 @@
 <?php
 
 require_once 'Configuracion.php';
-require_once 'KimalPHP.php';
+require_once 'KimaldiFrameGenerator.php';
 require_once 'WsServerManager.php';
 
 require __DIR__.'/../vendor/autoload.php';
@@ -9,7 +9,7 @@ require __DIR__.'/../vendor/autoload.php';
 
 
 
-class phpKimServer extends React\Socket\Server
+class PhpKimaldiServer extends React\Socket\Server
 {
 	
 	protected $debug_client_mode;
@@ -18,7 +18,7 @@ class phpKimServer extends React\Socket\Server
 	
 	
 	protected $miWsManager;
-	protected $miKimal;
+	protected $generadorTramas;
 	protected $miLoop;
 
 	protected $conns;
@@ -97,7 +97,7 @@ class phpKimServer extends React\Socket\Server
 									
 		
 		//INSTANCIA de clase generadora de tramas con protocolo Kimaldi
-		$this->miKimal = new KimalPHP();
+		$this->generadorTramas = new KimaldiFrameGenerator();
 		
 		//INSTANCIA de clase generadora de tramas con protocolo Kimaldi
 		$this->miWsManager = new WsServerManager();
@@ -143,7 +143,17 @@ class phpKimServer extends React\Socket\Server
 		//notese que le pasamos el mismo loop que para todas las conexiones, posibilita escuchar sus eventos derecepcion
 		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
 		
-		echo "\n\nConexion establecida con la electronica!!!";
+		$this->controlEchoDebugServer("Conexion establecida con la electronica!!!");
+		
+		if(Configuracion::$hotResetAutomatico)
+		{
+			$this->controlEchoDebugServer("Directiva de configuracion hotResetAutomatico activa");
+			$this->HotReset();
+			
+			$this->controlEchoDebugServer("Electronica activa, HotReset inicial Realizado");
+		}
+		
+		
 		
 		return $this->codColectMethodReturn["EJECUCION_OK"];
 		
@@ -153,11 +163,13 @@ class phpKimServer extends React\Socket\Server
 	
 	public function ClosePort()
 	{
-		echo "\n\nEjecutando funcion closePort";
+		$this->controlEchoDebugServer("Ejecutando funcion closePort");
 		
 		if($this->conexElectronica == null)
 		{
-			echo "\n\nERROR se intento cerrar el socket con la electronica pero este NO se encuentra abierto\n";
+			
+			$this->controlEchoDebugServer("ERROR se intento cerrar el socket con la electronica pero este NO se encuentra abierto");
+					
 			return $this->codColectMethodReturn["NO_CANAL_COM_ELECTRONICA"];
 		}
 		
@@ -180,7 +192,7 @@ class phpKimServer extends React\Socket\Server
 		
 		if ($this->conexElectronica == null)
 		{
-			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible inicializar sus eventos\n";
+			$this->controlEchoDebugServer("ERROR el socket con la electronica NO se encuentra abierto, no es posible inicializar sus eventos");
 			return;
 		}
 	
@@ -199,7 +211,8 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function onDataElectronica($data)
 	{
-		echo "\nTrama de electronica recibida con data: ".$data."\n\n";
+		
+		$this->controlEchoDebugServer("Trama de electronica recibida con data: ".$data);
 		
 		$desgloseTrama = array();
 		
@@ -207,20 +220,20 @@ class phpKimServer extends React\Socket\Server
 		//la electronica manda periodicamente una ack, ASCII 6
 		if (ord($data) != 6)
 		{
-			$desgloseTrama = $this->miKimal->desglosaTrama($data);
+			$desgloseTrama = $this->generadorTramas->desglosaTrama($data);
 			$this->evaluaEvento( $desgloseTrama["OPC"] , $desgloseTrama["ARG"]);
 		} 
 		
 		//informamos del Evento recibido desde la tarjeta
 		//mandar trama debug a todos los clientes, por si quieren monitorizar
-		$this->debugFrameToClient("Evento: ".$data, null);
+		$this->debugFrameToClient("Recibida Trama de Electronica: ".$data, null);
 	}
 	
 	//--------------------------------------------------------------------------
 	
 	protected function onFinalizacionElectronica($conn)
 	{
-		echo "\n\ndesconectada electronica, IP:".$conn->getRemoteAddress()."\n\n";
+		$this->controlEchoDebugServer("CONEXION ELECTRONICA FINALIZADA, IP:".$conn->getRemoteAddress());
 	
 		$this->procesaTCPClose();
 		
@@ -236,7 +249,8 @@ class phpKimServer extends React\Socket\Server
 	
 	protected function onErrorConexionElectronica($error)
 	{
-		echo "\n\nError TCP:";
+		
+		$this->controlEchoDebugServer("\n\nError TCP:", false);
 		var_dump($error);
 	
 		echo "\n\n";
@@ -255,8 +269,8 @@ class phpKimServer extends React\Socket\Server
 	
 		$this->conns->attach($connCliente);
 	
-		echo "\nNueva conexion entrante cliente@".$connCliente->getRemoteAddress().".....\n";
-	
+		$this->controlEchoDebugServer("Nueva conexion entrante cliente@".$connCliente->getRemoteAddress().".....");
+		
 		//a la nueva conexion hay que darle sus manejadores de eventos
 		$connCliente->on('data',  [$this, 'onDataCliente']);
 		$connCliente->on('end',  [$this, 'onFinalizacionCliente']);
@@ -277,11 +291,13 @@ class phpKimServer extends React\Socket\Server
 					//al conectar un cliente, este evento ya salta, vamosa ver si esta mandando peticion de conexion websocket
 					if($this->miWsManager->mensajeEsDeApertura($data))
 					{			
-							echo "\nMensaje parece ser cabecera de apertura websocket\n\n";
-											
+						
+							$this->controlEchoDebugServer("Mensaje parece ser cabecera de apertura websocket");						
+							
 							$this->miWsManager->perform_handshaking($data, $connCliente, $this->ipLocal);
 
-							echo "\nCompletado HandShake cliente@".$connCliente->getRemoteAddress()."\n";
+							
+							$this->controlEchoDebugServer( "Completado HandShake cliente@".$connCliente->getRemoteAddress() );
 							
 							//handshake completado, no seguimos
 							return;				
@@ -294,15 +310,21 @@ class phpKimServer extends React\Socket\Server
 
 					$received_text = $this->miWsManager->unmask($data); 
 										
-							
-					echo "\nCliente@".$connCliente->getRemoteAddress().": escribio trama WebSocket valor desenmascarado:\n".$received_text."\n\n";
+					//un cliente que se va (cerrando el socket) manda un par de caracteres ascii
+					//03 EXT seguido de algún otro por lo tanto ya no deberiamos seguir
+					if (ord($received_text[0]) == 3 || ord($received_text[1]) == 3)
+					{
+						//trama WS de fin de comunicacion, a continucacion saldra el evento onFinalizacionCliente
+						return;
+					}
+					
+					
+					$this->controlEchoDebugServer( "Cliente@".$connCliente->getRemoteAddress().": escribio trama WebSocket valor desenmascarado:\n".$received_text);
 							
 							
 					$tst_msg = json_decode($received_text); //json decode
 							
-					//TODO aqui busca en la variable $received_text un cliente que se va (cerrando el socket) manda los caracteres ascii
-					//03 seguido de algún otro por lo tanto ya no deberiamos seguir, se que el primer caracter es ascii 3 del segundo no se
-					//algo asi... if (ord($received_text[0]) == 3 && ord($received_text[1]) == ?)
+					
 					
 					
 					
@@ -314,7 +336,7 @@ class phpKimServer extends React\Socket\Server
 						$argumentos = $tst_msg->arg;
 						$tipoArgumento = $tst_msg->argType;
 							
-						echo "\nusuario manda comando, opc:#".dechex($opc)."#, numArg:#".count($argumentos)."#\n";
+						$this->controlEchoDebugServer( "Usuario manda comando, opc:#".dechex($opc)."#, numArg:#".count($argumentos)."#");
 							
 											
 						if($tipoArgumento == "char")
@@ -326,10 +348,10 @@ class phpKimServer extends React\Socket\Server
 						}
 							
 							
-						$trama = $this->miKimal->createFrame($opc, $argumentos, $tipoArgumento);
+						$trama = $this->generadorTramas->createFrame($opc, $argumentos, $tipoArgumento);
 							
 							
-						echo "\n trama generada #".$trama."#\n";
+						$this->controlEchoDebugServer( "Trama generada #".$trama."#");
 							
 						
 							
@@ -351,7 +373,7 @@ class phpKimServer extends React\Socket\Server
 						}
 						else
 						{
-							echo "\nel cliente con ip: ".$connCliente->getRemoteAddress()." realiza llamada al metodo del servidor con nombre\"".$funcName."\" funcion INEXISTENTE\n";
+							$this->controlEchoDebugServer( "El cliente con ip: ".$connCliente->getRemoteAddress()." realiza llamada al metodo del servidor con nombre\"".$funcName."\" funcion INEXISTENTE");
 						}
 						
 					}
@@ -371,7 +393,7 @@ class phpKimServer extends React\Socket\Server
 					}
 					else 
 					{
-						echo "\nel cliente con ip: ".$connCliente->getRemoteAddress()." envio trama sin formato adecuado (se precisa JSON y campo tipo)\n";
+						$this->controlEchoDebugServer( "El cliente con ip: ".$connCliente->getRemoteAddress()." envio trama sin formato adecuado (se precisa JSON y campo tipo)");
 					}
 					
 					
@@ -384,7 +406,7 @@ class phpKimServer extends React\Socket\Server
 
 	protected function onFinalizacionCliente($connCli)
 	{
-		echo "\nDesconectado cliente WS con IP:".$connCli->getRemoteAddress()."\n";
+		$this->controlEchoDebugServer( "Desconectado cliente WS con IP:".$connCli->getRemoteAddress() );
 	
 		//fuera de la lista de conexiones de cliente
 		$this->conns->detach($connCli);
@@ -400,7 +422,7 @@ class phpKimServer extends React\Socket\Server
 		
 		$mensaje_broadcast_clientes = $this->miWsManager->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
 		
-		echo "\nBroadcast todos los clientes, datos con valor".$mensaje_response_cliente."\n al cliente ".$ipClienteConcreto."\n";
+		$this->controlEchoDebugServer( "Broadcast todos los clientes, datos con valor: ".$mensaje_response_cliente );
 			
 		$this->mandarTodosUsuarios($mensaje_broadcast_clientes);
 
@@ -426,22 +448,22 @@ class phpKimServer extends React\Socket\Server
 			{	
 				if($conUsu->getRemoteAddress() == $ipClienteConcreto)
 				{
-					echo "\n response a IP cliente concreto, datos con valor".$mensaje_response_cliente."\n al cliente ".$ipClienteConcreto."\n";
+					$this->controlEchoDebugServer( "Response a IP cliente concreto, datos con valor".$mensaje_response_cliente."\n al cliente ".$ipClienteConcreto );
 					$conUsu->write($mensaje_response_cliente);
 					
 					return;
 				}
-				echo "\nSe busco cliente con IP ".$ipClienteConcreto.", pero no se encuentra registrado\n";
+				$this->controlEchoDebugServer( "Se busco cliente con IP ".$ipClienteConcreto.", pero no se encuentra registrado");
 			}
 		}
 		elseif($this->conClienteActivoBloqueaRespuesta == null)
 		{
-			echo "\nNo es posible responder a cliente que ocasiono bloqueo, no esta definido\n";
+			$this->controlEchoDebugServer( "No es posible responder a cliente que ocasiono bloqueo, no esta definido");
 			return;
 		}
 		else 
 		{
-			echo "\n response con valor".$mensaje_response_cliente."\n al cliente ".$this->conClienteActivoBloqueaRespuesta->getRemoteAddress()."\n";
+			$this->controlEchoDebugServer( "Response con valor".$mensaje_response_cliente."\n al cliente ".$this->conClienteActivoBloqueaRespuesta->getRemoteAddress() );
 			$this->conClienteActivoBloqueaRespuesta->write($mensaje_response_cliente);
 		}
 		
@@ -473,7 +495,7 @@ class phpKimServer extends React\Socket\Server
 		
 		if ($this->conexElectronica == null)
 		{
-			echo "\n\n ERROR el socket con la electronica NO se encuentra abierto, no es posible mandar tramas\n";
+			$this->controlEchoDebugServer( "ERROR el socket con la electronica NO se encuentra abierto, no es posible mandar tramas");
 			return $this->codColectMethodReturn["NO_CANAL_COM_ELECTRONICA"];
 		}
 		
@@ -493,7 +515,7 @@ class phpKimServer extends React\Socket\Server
 		//hay que sustituirla por el fwrite al stream directamenre
 		fwrite($streamElectronica, $trama);
 		
-		echo "\nMandada trama electronica, se procede a bloqueo esperando lectura...:";
+		$this->controlEchoDebugServer( "Mandada trama electronica, se procede a bloqueo esperando lectura...:");
 		
 		
 		//en estas condiciones la lectura del stream PRODUCE BLOQUEO que es lo que queremos
@@ -505,7 +527,7 @@ class phpKimServer extends React\Socket\Server
 		//*****************aqui se lanzaria el evento timeout se definiria e implementara en la clase heredera aqui habria un "procesaTimeOut()"
 		if ($meta['timed_out'])
 		{
-			echo "\n\nTIMEOUT\n\n";
+			$this->controlEchoDebugServer( "TIMEOUT");
 			
 			//esto es simplemente para el monitor del cliente, se manda el mensaje de NodeTimeOut solo al cliente que inicio este proceso y causo este timeout
 			$this->debugFrameToClient("...NodeTimeOut", $this->conClienteActivoBloqueaRespuesta);
@@ -520,13 +542,13 @@ class phpKimServer extends React\Socket\Server
 			//aqui se deberian ir mandando los eventos Ans... definirian en la clase heredera aqui habria un "procesaAns...()", antes, esta funcion propagara el valor 0
 			//a la funcion que la haya llamado
 			//si no se recibe ans con el opc esperado (un evento se entromete, puede ocurrir)  deberiamos repetir lectura y bloqueo, (en este caso el tiempo del NodeTimeOut volveria a cero :?)
-			echo "\nLectura post-bloqueo!!!#".$bufer."#\n\n\n";
+			$this->controlEchoDebugServer( "Lectura post-bloqueo!!!#".$bufer."#");
 			
 			//esto es simplemente para el monitor del cliente, se manda solo al que inicio este proceso, se le informa de que su accion ha tenido una respuesta especifica desde la electronica
 			$this->debugFrameToClient("Respuesta Ans:".$bufer, $this->conClienteActivoBloqueaRespuesta);
 			
 			
-			$opc = $this->miKimal->dameOpcTrama($bufer);
+			$opc = $this->generadorTramas->dameOpcTrama($bufer);
 			
 			
 			//tramas de rechazo emitidas por la electronica
@@ -549,7 +571,7 @@ class phpKimServer extends React\Socket\Server
 			
 		}
 		
-		//las respuestas Ans normales al fin y al cabo son tratados como eventos (tipo ANS), ya hem,os hecho los controles de sincronizacion que necesitabamos
+		//las respuestas Ans normales al fin y al cabo son tratados como eventos (tipo ANS), ya hemos hecho los controles de sincronizacion que necesitabamos
 		//para que sigan el curso normal de un evento, vamos a pasarla a la funcion que trata los eventos espontaneos
 		//TODO ojito aqui no deberias propagar el bufer como evento si resulta que este esta vacio, en un node time out p ej
 		$this->onDataElectronica($bufer);
@@ -582,7 +604,7 @@ class phpKimServer extends React\Socket\Server
 		}
 		else 
 		{
-			echo "\nOPC \"".$opc."\" no incluido en lista de eventos/respuestas reconocidos\n";
+			$this->controlEchoDebugServer( "OPC \"".$opc."\" no incluido en lista de eventos/respuestas reconocidos");
 		}
 		
 	}
@@ -601,8 +623,9 @@ class phpKimServer extends React\Socket\Server
 	
 	public function HotReset()
 	{
-		$trama = $this->miKimal->tramaHotReset();
-		echo "\n enviando trama HotReset: ".$trama;
+		$trama = $this->generadorTramas->tramaHotReset();
+		
+		$this->controlEchoDebugServer( "Enviando trama HotReset: ".$trama);
 		//Hacer el ->write directamente hacia la electronica hace uqe perdamos TOoDO el control, usar la func manda_comando_electronica
 		//controla cosas como el cliente actual que espera respuesta (cola mediante bloqueo), emite eventos de error de trama y NodeTimeOut, ademas, las respuestas 
 		//recibidas se propagan luego como cualquier otro evento (son los llamados eventos de respuesta prefijo "Ans")
@@ -615,8 +638,8 @@ class phpKimServer extends React\Socket\Server
 	
 	public function TestNodeLink()
 	{
-		$trama = $this->miKimal->tramaTestNodeLink();
-		echo "\n enviando trama TestNodeLink: ".$trama;
+		$trama = $this->generadorTramas->tramaTestNodeLink();
+		$this->controlEchoDebugServer( "Enviando trama TestNodeLink: ".$trama );
 	
 		//-----------*******
 		$valorRes = $this->manda_comando_electronica($trama);
@@ -628,8 +651,8 @@ class phpKimServer extends React\Socket\Server
 	
 	public function ActivateDigitalOutput($numOut, $tTime)
 	{
-		$trama = $this->miKimal->tramaActivateDigitalOutput( array($numOut, $tTime) );
-		echo "\n enviando trama ActivateDigitalOutput: ".$trama;
+		$trama = $this->generadorTramas->tramaActivateDigitalOutput( array($numOut, $tTime) );
+		$this->controlEchoDebugServer("Enviando trama ActivateDigitalOutput: ".$trama);
 		
 		//-----------*******
 		$valorRes = $this->manda_comando_electronica($trama);
@@ -648,8 +671,8 @@ class phpKimServer extends React\Socket\Server
 			$hexMode = 0x01;
 		}
 		
-		$trama = $this->miKimal->tramaSwitchDigitalOutput( array($numOut, $hexMode) );
-		echo "\n enviando trama SwitchDigitalOutput: ".$trama;
+		$trama = $this->generadorTramas->tramaSwitchDigitalOutput( array($numOut, $hexMode) );
+		$this->controlEchoDebugServer( "Enviando trama SwitchDigitalOutput: ".$trama );
 		//-----------*******
 		$valorRes = $this->manda_comando_electronica($trama);
 		return $valorRes;
@@ -660,8 +683,8 @@ class phpKimServer extends React\Socket\Server
 	
 	public function ActivateRelay($numRelay, $tTime)
 	{
-		$trama = $this->miKimal->tramaActivateRelay( array($numRelay, $tTime) );
-		echo "\n enviando trama ActivateRelay: ".$trama;
+		$trama = $this->generadorTramas->tramaActivateRelay( array($numRelay, $tTime) );
+		$this->controlEchoDebugServer( "Enviando trama ActivateRelay: ".$trama );
 		//-----------*******
 		$valorRes = $this->manda_comando_electronica($trama);
 		return $valorRes;
@@ -679,8 +702,8 @@ class phpKimServer extends React\Socket\Server
 			$hexMode = 0x01;
 		}
 	
-		$trama = $this->miKimal->tramaSwitchRelay( array($numRelay, $hexMode) );
-		echo "\n enviando trama SwitchRelay: ".$trama;
+		$trama = $this->generadorTramas->tramaSwitchRelay( array($numRelay, $hexMode) );
+		$this->controlEchoDebugServer( "Enviando trama SwitchRelay: ".$trama );
 		//-----------*******
 		$valorRes = $this->manda_comando_electronica($trama);
 		return $valorRes;
@@ -690,8 +713,8 @@ class phpKimServer extends React\Socket\Server
 	
 	public function TxDigitalInput()
 	{
-		$trama = $this->miKimal->tramaTxDigitalInput();
-		echo "\n enviando trama TxDigitalInput: ".$trama;
+		$trama = $this->generadorTramas->tramaTxDigitalInput();
+		$this->controlEchoDebugServer( "Enviando trama TxDigitalInput: ".$trama );
 		//-----------*******
 		$valorRes = $this->manda_comando_electronica($trama);
 		return $valorRes;
@@ -715,9 +738,9 @@ class phpKimServer extends React\Socket\Server
 		//la convertimos a array de caracteres
 		$arrayText = str_split ($Text);
 		
-		$trama = $this->miKimal->createFrame(0x11, $arrayText, "char");
+		$trama = $this->generadorTramas->createFrame(0x11, $arrayText, "char");
 		
-		echo "\nEnviando trama WriteDisplay: ".$trama. "\n";
+		$this->controlEchoDebugServer( "Enviando trama WriteDisplay: ".$trama );
 		$valorRes = $this->manda_comando_electronica($trama);
 		return $valorRes;
 		
@@ -742,7 +765,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "OnKey") )
 			$this->OnKey($key);
 		else
-			echo "metodo OnKey lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Metodo OnKey lanzado, pero no esta definido ni implementado");
 	}
 	
 	//-----------------------------------------------------
@@ -763,7 +786,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "OnTrack") )
 			$this->OnTrack($track);
 		else 
-			echo "metodo OnTrack lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Metodo OnTrack lanzado, pero no esta definido ni implementado");
 		
 	}
 	
@@ -778,7 +801,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "OnDigitalInput") )
 			$this->OnDigitalInput($arg);
 		else
-			echo "metodo OnDigitalInput lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Metodo OnDigitalInput lanzado, pero no esta definido ni implementado");
 		
 		
 		 
@@ -812,7 +835,7 @@ class phpKimServer extends React\Socket\Server
 			$this->OnDigitalInputBoolean($din1, $din2, $din3, $din4);
 		}	
 		else
-			echo "metodo OnDigitalInputBoolean lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Metodo OnDigitalInputBoolean lanzado, pero no esta definido ni implementado");
 		
 		
 	}
@@ -837,7 +860,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsHotReset") )
 			$this->AnsHotReset();
 		else
-			echo "evento de respuesta AnsHotReset lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsHotReset lanzado, pero no esta definido ni implementado");
 		
 	}
 	
@@ -848,7 +871,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsTestNodeLink") )
 			$this->AnsTestNodeLink();
 		else
-			echo "evento de respuesta AnsTestNodeLink lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsTestNodeLink lanzado, pero no esta definido ni implementado");
 	}
 	
 	//--------------------------------------------------------------------
@@ -858,7 +881,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsActivateDigitalOutput") )
 			$this->AnsActivateDigitalOutput();
 		else
-			echo "evento de respuesta AnsActivateDigitalOutput lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsActivateDigitalOutput lanzado, pero no esta definido ni implementado");
 	}
 	
 	//--------------------------------------------------------------------
@@ -868,7 +891,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsSwitchDigitalOutput") )
 			$this->AnsSwitchDigitalOutput();
 		else
-			echo "evento de respuesta AnsSwitchDigitalOutput lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsSwitchDigitalOutput lanzado, pero no esta definido ni implementado");
 	}
 	
 	//--------------------------------------------------------------------
@@ -878,7 +901,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsActivateRelay") )
 			$this->AnsActivateRelay();
 		else
-			echo "evento de respuesta AnsActivateRelay lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsActivateRelay lanzado, pero no esta definido ni implementado");
 	}
 	
 	//--------------------------------------------------------------------
@@ -888,7 +911,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsSwitchRelay") )
 			$this->AnsSwitchRelay();
 		else
-			echo "evento de respuesta AnsSwitchRelay lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsSwitchRelay lanzado, pero no esta definido ni implementado");
 	}
 
 	//--------------------------------------------------------------------
@@ -898,7 +921,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "AnsWriteDisplay") )
 			$this->AnsWriteDisplay();
 		else
-			echo "evento de respuesta AnsWriteDisplay lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de respuesta AnsWriteDisplay lanzado, pero no esta definido ni implementado");
 	}
 	
 	
@@ -927,7 +950,7 @@ class phpKimServer extends React\Socket\Server
 	private function desambiguacionDigitalOutput($arg)
 	{
 		
-		echo "evaluando desambiguacionDigitalOutput (OPC 0x30)el criterio es el arg recibido:#".$arg."#\n";
+		$this->controlEchoDebugServer( "Evaluando desambiguacionDigitalOutput (OPC 0x30)el criterio es el arg recibido:#".$arg."#");
 	
 		//sin arg deducimos que estra trama d ela electronica es AnsActivateDigitalOutput
 		//en otro caso es un evento de fin de temporalizacion OnStatusDigitalOutput
@@ -936,7 +959,7 @@ class phpKimServer extends React\Socket\Server
 			if ( method_exists($this, "AnsActivateDigitalOutput") )
 				$this->AnsActivateDigitalOutput();
 			else
-				echo "metodo AnsActivateDigitalOutput lanzado, pero no esta definido ni implementado\n";
+				$this->controlEchoDebugServer( "Metodo AnsActivateDigitalOutput lanzado, pero no esta definido ni implementado");
 			
 		}
 		else //si hay argumentos, obligatoriamente deberian ser dos (dos bytes codificados en hexa, cada uno dos caracteres)
@@ -948,7 +971,7 @@ class phpKimServer extends React\Socket\Server
 			if ( method_exists($this, "OnStatusDigitalOutput") )
 				$this->OnStatusDigitalOutput($NumOut, $status);
 			else
-				echo "metodo OnStatusDigitalOutput lanzado, pero no esta definido ni implementado\n";
+				$this->controlEchoDebugServer( "Metodo OnStatusDigitalOutput lanzado, pero no esta definido ni implementado");
 			
 		}
 		
@@ -964,7 +987,7 @@ class phpKimServer extends React\Socket\Server
 	private function desambiguacionRelay($arg)
 	{
 		
-		echo "evaluando desambiguacionRelay (OPC 0x40)el criterio es el arg recibido:#".$arg."#\n";
+		$this->controlEchoDebugServer( "Evaluando desambiguacionRelay (OPC 0x40)el criterio es el arg recibido:#".$arg."#");
 		
 		//sin arg deducimos que estra trama d ela electronica es AnsActivateRelay
 		//en otro caso es un evento de fin de temporalizacion OnStatusRelay
@@ -973,7 +996,7 @@ class phpKimServer extends React\Socket\Server
 			if ( method_exists($this, "AnsActivateRelay") )
 				$this->AnsActivateRelay();
 			else
-				echo "metodo AnsActivateRelay lanzado, pero no esta definido ni implementado\n";
+				$this->controlEchoDebugServer( "Metodo AnsActivateRelay lanzado, pero no esta definido ni implementado");
 				
 		}
 		else //si hay argumentos, obligatoriamente deberian ser dos (dos bytes codificados en hexa, cada uno dos caracteres)
@@ -985,7 +1008,7 @@ class phpKimServer extends React\Socket\Server
 			if ( method_exists($this, "OnStatusRelay") )
 				$this->OnStatusRelay($numout, $status);
 			else
-				echo "metodo OnStatusRelay lanzado, pero no esta definido ni implementado\n";
+				$this->controlEchoDebugServer( "Metodo OnStatusRelay lanzado, pero no esta definido ni implementado");
 				
 		}
 		
@@ -1013,7 +1036,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "TCPClose") )
 			$this->TCPClose();
 		else
-			echo "evento de error TCPClose lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de error TCPClose lanzado, pero no esta definido ni implementado");
 	}
 
 	//------------------------------------------------
@@ -1023,7 +1046,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "TCPError") )
 			$this->TCPError($error);
 		else
-			echo "evento de error TCPError lanzado, pero no esta definido ni implementado, error capturado:\n".$error."\n";
+			$this->controlEchoDebugServer( "Evento de error TCPError lanzado, pero no esta definido ni implementado, error capturado:\n".$error);
 	}
 	
 	//------------------------------------------------
@@ -1033,7 +1056,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "TFrameDelay") )
 			$this->FrameDelay();
 		else
-			echo "evento de error FrameDelay lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de error FrameDelay lanzado, pero no esta definido ni implementado");
 	}
 	
 	//------------------------------------------------
@@ -1043,7 +1066,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "NodeTimeOut") )
 			$this->NodeTimeOut();
 		else
-			echo "evento de error NodeTimeOut lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de error NodeTimeOut lanzado, pero no esta definido ni implementado");
 	}
 	
     //------------------------------------------------
@@ -1053,7 +1076,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "ErrOpCode") )
 			$this->ErrOpCode();
 		else
-			echo "evento de error ErrOpCode lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de error ErrOpCode lanzado, pero no esta definido ni implementado");
 	}
 	//------------------------------------------------
 	
@@ -1062,7 +1085,7 @@ class phpKimServer extends React\Socket\Server
 		if ( method_exists($this, "FrameError") )
 			$this->FrameError();
 		else
-			echo "evento de error FrameError lanzado, pero no esta definido ni implementado\n";
+			$this->controlEchoDebugServer( "Evento de error FrameError lanzado, pero no esta definido ni implementado");
 	}
 	
    /*
@@ -1089,13 +1112,17 @@ class phpKimServer extends React\Socket\Server
 		
 	}
 	//---------------------------------------------------------------------------
-	//TODO calcular los milisegundos podrian comprometer la performance
+	
 	public function controlEchoDebugServer($msg, $agregaSaltoLinea = true)
 	{
+		
+		$msg = preg_replace('/[^(\x20-\x7F)]*/','', $msg);
+		
 		if($agregaSaltoLinea)
-			echo "\n\n".round(microtime(true) * 1000).": ".$msg."\n\n";
+			echo "\n\n".microtime(true).": ".$msg."\n\n";
 		else
 			echo $msg;
+		
 	}
 	
 	//---------------------------------------------------------------------------
@@ -1109,7 +1136,8 @@ class phpKimServer extends React\Socket\Server
 		//ojito que si no le pones ip del servidor en el que estamos como segundo parametro, SOLO funcionara en local
 		$this->listen($this->puertoEscucha, $this->ipLocal); 
 		
-		echo "\nServidor de sockets Activo, escucha en: ".$this->ipLocal.":".$this->puertoEscucha."\n"; 
+		
+		$this->controlEchoDebugServer("Servidor de sockets Activo, escucha en: ".$this->ipLocal.":".$this->puertoEscucha);
 		
 		return $this->miLoop->run();
 

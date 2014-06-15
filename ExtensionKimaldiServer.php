@@ -1,12 +1,12 @@
 <?php
-//php htdocs/phpkimaldi/testReact/extensionPhpKimServer.php
-//php C:\xampp\htdocs\pyt\phpKimServer\phpKim\extensionPhpKimServer.php
+//php htdocs/phpkimaldi/testReact/ExtensionKimaldiServer.php
+//php C:\xampp\htdocs\pyt\KimaldiServer\phpKim\ExtensionKimaldiServer.php
 
 require_once 'src/Configuracion.php';
-require_once 'src/phpKimServer.php';
+require_once 'src/PhpKimaldiServer.php';
 
 //extendemos la clase libremente
-Class miServidorKimaldi extends phpKimServer
+Class ExtensionKimaldiServer extends PhpKimaldiServer
 {
 	
 	private $conexionDB;
@@ -98,6 +98,7 @@ Class miServidorKimaldi extends phpKimServer
 			return;
 		}
 		
+		echo "\nACCESO PERMITIDO!!!\n\n";
 		
 		$query = "insert into accesos (id_taquillas, id_empleados, fecha_hora, num_tarjeta)
 				  values(".$id_taqui.",".$id_emp.",'".date("Y-m-d H:i:s")."','".$track."')";
@@ -204,7 +205,7 @@ Class miServidorKimaldi extends phpKimServer
 //-------------------------------------------------------------------------
 //RUN RUN RUN 
 //instancia de la clase ya extendida
-$servKimaldi = new miServidorKimaldi();
+$servKimaldi = new ExtensionKimaldiServer();
 
 
 //conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
