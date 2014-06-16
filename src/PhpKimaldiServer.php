@@ -109,8 +109,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 
 	//--------------------------------------------------------------------------
-	
-	//el puerto de la electronica es por defecto el 1001
+	//abre un puerto de comunicacion con la electrónica vía TCP
+	//segundo parametro opcional, el puerto de la electronica es por defecto el 1001
 	public function OpenPortTCP($dirIPElectronica, $puertoElectronica = "1001")
 	{	
 		//la conexion con la electronica ya esta abierta, debe cerrarse primero la conexion
@@ -160,7 +160,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//--------------------------------------------------------------------------
-	
+	//cierra el puerto de comunicación TCP con la electrónica
 	public function ClosePort()
 	{
 		$this->controlEchoDebugServer("Ejecutando funcion closePort");
@@ -620,7 +620,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 */
 	//-------------------------------------------------
 	
-	
+	//realiza un reset en caliente de la electrónica
 	public function HotReset()
 	{
 		$trama = $this->generadorTramas->tramaHotReset();
@@ -635,7 +635,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//--------------------------------
-	
+	//manda una trama de test, esperando respuesta, sirve para comprobar la comunicacion con la 
+	//electrónica de forma fehaciente
 	public function TestNodeLink()
 	{
 		$trama = $this->generadorTramas->tramaTestNodeLink();
@@ -648,7 +649,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	
 	//-------------------------------------
-	
+	//activa una salida digital (numeradas de 0 a 3 en el caso de la Biomax2), durante 
+	//el numero de decimas de segundo determinado en el parametro $tTime (valores hexadecimales)
 	public function ActivateDigitalOutput($numOut, $tTime)
 	{
 		$trama = $this->generadorTramas->tramaActivateDigitalOutput( array($numOut, $tTime) );
@@ -660,7 +662,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//--------------------------------
-	
+	//Cambia el estado de una salida digital (numeradas de 0 a 3 en el caso de la Biomax2)
+	//el parametro $mode es un booleano que determina si la salida adquirirá estado activad o inactivado
 	public function SwitchDigitalOutput($numOut, $mode)
 	{
 		//pordefecto hex 0x00, valor false
@@ -680,7 +683,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 
 	//--------------------------------
-	
+	//activa un relé (numerados de 0 a 3 en el caso de la Biomax2), durante
+	//el numero de decimas de segundo determinado en el parametro $tTime (valores hexadecimales)
 	public function ActivateRelay($numRelay, $tTime)
 	{
 		$trama = $this->generadorTramas->tramaActivateRelay( array($numRelay, $tTime) );
@@ -691,7 +695,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//--------------------------------
-	
+	//Cambia el estado de un relé (numerados de 0 a 3 en el caso de la Biomax2)
+	//el parametro $mode es un booleano que determina si la salida adquirirá estado cerrado o abierto
 	public function SwitchRelay($numRelay, $mode)
 	{
 		//pordefecto hex 0x00, valor false
@@ -710,7 +715,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//------------------------------------
-	
+	//realiza una solicitud de trama que describa el estado de las entradas digitales de la electrónica
+	//el resultado es el mismo que recibir un eventop OnDIgitalInput, de forma espontánea desde la electrónica
 	public function TxDigitalInput()
 	{
 		$trama = $this->generadorTramas->tramaTxDigitalInput();
@@ -723,7 +729,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//---------------------------------------
 	
-	
+	//Manda una cadena de texto para que la electrónica la muestre en su display, los primeros 20 caracteres corresponderán a la primera línea
+	//los últimos 20 caracteres corresponderán a la segunda, se produce, además una retroiluminación momentánea del Display
 	public function WriteDisplay($Text)
 	{
 		
@@ -756,7 +763,9 @@ class PhpKimaldiServer extends React\Socket\Server
 	 */
 	
 	
-	//implementar OnKey en la clase que hereda
+	
+	//Es llamada al recibir una trama de evento de pulsacion de tecla
+	//implementar OnKey en la clase que hereda $key es el codigo ASCII en hexadecimal,  de la tecla pulsada
 	private function procesaOnKey($arg)
 	{
 		$valorCaracter = hexdec( $arg );
@@ -770,8 +779,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//-----------------------------------------------------
 	
-	
-	//implementar OnTrack en la clase que hereda
+	//Es llamada al recibir una trama de evento de lectura de tarjeta
+	//implementar OnTrack en la clase que hereda $track es la cadena de caracteres del codigo leido en la tarjeta
 	private function procesaOnTrack($arg)
 	{
 		$track="";
@@ -793,8 +802,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//---------------------------------------------------------
 	
-	
-	//implementar OnDigitalInput en la clase que hereda (Een este caso se pueden usar DOS MANEJADORES DE EVENTOS alternativos, ambos seran llamados si es posible)
+	//Es llamada al recibir una trama de evento de entradas digitales
+	//implementar OnDigitalInput en la clase que hereda (En este caso se pueden usar DOS MANEJADORES DE EVENTOS alternativos, ambos seran llamados si es posible)
 	private function procesaOnDigitalInput($arg)
 	{
 		
@@ -1030,7 +1039,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	* PROCESADO EVENTOS ERROR
 	*
 	*/
-	
+	//implementar TCPClose() en clase heredera
+	//es un evento que se lanza cuando se pierde la comunicación TCP con la electrónica y el cierre de socket es efectivo
 	private function procesaTCPClose()
 	{
 		if ( method_exists($this, "TCPClose") )
@@ -1040,7 +1050,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 
 	//------------------------------------------------
-
+	//implementar TCPError() en clase heredera
+	//es un evento que se lanza cuando se produce algun error de sistema en la comunicacion TCP 
 	private function procesaTCPError($error)
 	{
 		if ( method_exists($this, "TCPError") )
@@ -1050,7 +1061,9 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//------------------------------------------------
-	
+	//implementar FrameDelay(); en clase heredera
+	//es un evento que se lanza cuando se produce cuando la electronica recibe una instruccion pero
+	//no puede atenderla por estar ocupada
 	private function procesaFrameDelay()
 	{
 		if ( method_exists($this, "TFrameDelay") )
@@ -1060,7 +1073,9 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//------------------------------------------------
-	
+	//implementar NodeTimeOut(); en clase heredera
+	//es un evento que se lanza cuando Se ha agotado el Timeout de comunicaciones con la 
+	//electrónica entre una instrucción y la recepción de su respuesta. (el num de segundos es configurable en Configuracion.php)
 	private function procesaNodeTimeOut()
 	{
 		if ( method_exists($this, "NodeTimeOut") )
@@ -1070,7 +1085,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
     //------------------------------------------------
-	
+	//implementar ErrOpCode() en clase heredera
+	//es un evento que se lanza cuando la electronica recibe trama pero no admite la instruccion normalmente OPC no valido
 	private function procesaErrOpCode()
 	{
 		if ( method_exists($this, "ErrOpCode") )
@@ -1078,8 +1094,10 @@ class PhpKimaldiServer extends React\Socket\Server
 		else
 			$this->controlEchoDebugServer( "Evento de error ErrOpCode lanzado, pero no esta definido ni implementado");
 	}
-	//------------------------------------------------
 	
+	//------------------------------------------------
+	//implementar FrameError() en clase heredera
+	//es un evento que se lanza cuando la electronica recibe trama pero tiene uns estructura erronea
 	private function procesaFrameError()
 	{
 		if ( method_exists($this, "FrameError") )
