@@ -1,6 +1,6 @@
 <?php 
 
-//sera asbtract class 
+
 class KimaldiFrameGenerator
 {
 	
