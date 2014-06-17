@@ -9,18 +9,17 @@ require __DIR__.'/../vendor/autoload.php';
 
 
 /**
- *Esta clase controla una coleccion de conexiones de cliente, valiéndose del protocolo websocket,
- *procesa nuevas conexiones entrantes
+ * Esta clase controla una coleccion de conexiones de cliente, valiï¿½ndose del protocolo websocket,
+ * procesa nuevas conexiones entrantes
  *
- *Establece una conexión con un único terminal de Kimaldi. Concretamente el modelo Biomax2 o, alternativamente, KBio2
- *Maneja los eventos de nuevos datos disponibles en las conexiones, incorpora métodos para mandar tramas de instrucciones hacia la electronica
- *y traduce las lecturas desde la electronica en llamadas a funciones manejadoras de eventos.
- *Implementa el patrón reactor valiendose de la librería ReactPHP, heredando de la clase React\Socket\Server.
+ * Establece una conexiï¿½n con un ï¿½nico terminal de Kimaldi. Concretamente el modelo Biomax2 o, alternativamente, KBio2
+ * Maneja los eventos de nuevos datos disponibles en las conexiones, incorpora mï¿½todos para mandar tramas de instrucciones hacia la electronica
+ * y traduce las lecturas desde la electronica en llamadas a funciones manejadoras de eventos.
+ * Implementa el patron reactor valiendose de la libreria ReactPHP, heredando de la clase React\Socket\Server.
+ * Esta disenada para servir, a su vez de clase padre para otras que implementen sus mï¿½todos de evento y use sus funciones de instrucciï¿½n con la electrï¿½nica.
+ * Se inspira en la clase BioNet de la libreria de Kimaldi para el framework .NET
  *
- *Está diseñada para servir, a su vez de clase padre para otras que implementen sus métodos de evento y use sus funciones de instrucción con la electrónica.
- *Se inspira en la clase BioNet de la libreria de Kimaldi para el framework .NET
- *
- *@author Jose Acosta
+ * @author Jose Acosta
  */
 class PhpKimaldiServer extends React\Socket\Server
 {
@@ -32,7 +31,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	protected $debug_client_mode;
 	
 	/**
-	 * Valor booleano que determina si el se mandan mensajes de monitorización por stdout, con potencial de ser guardado en un log por supervisor
+	 * Valor booleano que determina si el se mandan mensajes de monitorizaciï¿½n por stdout, con potencial de ser guardado en un log por supervisor
 	 * @var bool
 	 */
 	protected $debug_log_mode;
@@ -44,7 +43,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	protected $miWsManager;
 	
 	/**
-	 * Encapsula la formación de tramas a nivel de byte para comunicarse con la electronica
+	 * Encapsula la formaciï¿½n de tramas a nivel de byte para comunicarse con la electronica
 	 * @var KimaldiFrameGenerator
 	 */
 	protected $generadorTramas;
@@ -58,13 +57,13 @@ class PhpKimaldiServer extends React\Socket\Server
 	protected $miLoop;
 	
 	/**
-	 * Colección de conexiones de cliente, son ibjetos tipo #Connection de React\Socket\Connection
+	 * Colecciï¿½n de conexiones de cliente, son ibjetos tipo #Connection de React\Socket\Connection
 	 * @var SplObjectStorage
 	 */
 	protected $conns;
 	
 	/**
-	 * Conexion TCP que se establece con la electrónica 
+	 * Conexion TCP que se establece con la electrï¿½nica 
 	 * @var React\Socket\Connection
 	 */
 	protected $conexElectronica;
@@ -104,7 +103,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	protected $timeoutNodeTimeOut;
 	
 	/**
-	 * Dirección de ip de la electronica (normalmente 192.168.123.10), el constructor la carga desde configuracion
+	 * Direcciï¿½n de ip de la electronica (normalmente 192.168.123.10), el constructor la carga desde configuracion
 	 * @var string
 	 */
 	public $dirIPElectronica;
@@ -116,7 +115,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	public $puertoElectronica;
 	
 	/**
-	 * Dirección de ip de este servidor de sockets (ip local), el constructor la carga desde configuracion
+	 * Direcciï¿½n de ip de este servidor de sockets (ip local), el constructor la carga desde configuracion
 	 * @var string
 	 */
 	public $ipLocal;
@@ -141,8 +140,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * El constructor de esta clase sobreescribe al de su clase padre React\Socket\Server
 	 * 
 	 * Llama al constructor de la clase padre, pasandole una instancia del Loop de de eventos com parametro
-	 * Carga automáticamente valores importantes desde la clase Configuracion, instancia objetos e inicializa
-	 * colecciones de codigos OPC y codigos de devolución de métodos
+	 * Carga automï¿½ticamente valores importantes desde la clase Configuracion, instancia objetos e inicializa
+	 * colecciones de codigos OPC y codigos de devoluciï¿½n de mï¿½todos
 	 * 
 	 */
 	public function __construct() 
@@ -200,9 +199,9 @@ class PhpKimaldiServer extends React\Socket\Server
 
 	//--------------------------------------------------------------------------
 	/**
-	 * Abre un puerto de comunicacion con la electrónica vía TCP
+	 * Abre un puerto de comunicacion con la electrï¿½nica vï¿½a TCP
 	 * 
-	 * @param string $dirIPElectronica Dirección IP de la elctronica, por defecto tiene configuración IP fija 192.168.123.10
+	 * @param string $dirIPElectronica Direcciï¿½n IP de la elctronica, por defecto tiene configuraciï¿½n IP fija 192.168.123.10
 	 * @param string $puertoElectronica Opcional, el puerto de la electronica es por defecto el 1001
 	 * @return multitype:
 	 */
@@ -256,7 +255,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//--------------------------------------------------------------------------
 	/**
-	 * Cierra el puerto de comunicación TCP con la electrónica
+	 * Cierra el puerto de comunicaciï¿½n TCP con la electrï¿½nica
 	 */
 	public function ClosePort()
 	{
@@ -281,7 +280,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//---------------------------------------------------------------------------
 	/**
 	 * Enlaza los eventos lanzados por el servidor de sockets, tipo React\Socket\Server (onConnection)
-	 * tambien los eventos emitidos por la conexión de la electronica ('data', 'error', 'close')
+	 * tambien los eventos emitidos por la conexiï¿½n de la electronica ('data', 'error', 'close')
 	 * Todos adquieren un manejador.
 	 */
 	protected function inicializaEventos()
@@ -335,10 +334,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//--------------------------------------------------------------------------
 	/**
-	 * Maneja el evento de finalización de conexión con la elctrónica, el socket queda cerrado de forma efectiva
+	 * Maneja el evento de finalizaciï¿½n de conexiï¿½n con la elctrï¿½nica, el socket queda cerrado de forma efectiva
 	 * Lanza el evento TCPClose, de forma indirecta
 	 * 
-	 * @param React\Socket\Connection $conn recibe el objeto de conexion de electronica que cerró la conexion
+	 * @param React\Socket\Connection $conn recibe el objeto de conexion de electronica que cerrï¿½ la conexion
 	 */
 	protected function onFinalizacionElectronica($conn)
 	{
@@ -356,10 +355,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//--------------------------------------------------------------------------
 	/**
-	 * Maneja el evento de error TCP de conexión con la electrónica
+	 * Maneja el evento de error TCP de conexiï¿½n con la electrï¿½nica
 	 * Lanza el evento TcpError
 	 *
-	 * @param unknown $error Objeto que encapsula información relativa al error
+	 * @param unknown $error Objeto que encapsula informaciï¿½n relativa al error
 	 */
 	protected function onErrorConexionElectronica($error)
 	{
@@ -402,8 +401,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * Maneja el evento de nuevos datos disponibles en uno de los sockets de la coleccion de clientes conectados al servidor
 	 * 
 	 * Controla el Handshake de la conexion entrante valiendose de $miWsManager (si $data) resulta ser una peticion de establecimeinto de conexion
-	 * Realiza el desenmascarado de los datos en formato WebSocket valiéndose igualmente de $miWsManager.
-	 * Tambien manda tramas de debug o información hacia el resto de clientes, para que monitoricen conexiones de otros clientes.
+	 * Realiza el desenmascarado de los datos en formato WebSocket valiï¿½ndose igualmente de $miWsManager.
+	 * Tambien manda tramas de debug o informaciï¿½n hacia el resto de clientes, para que monitoricen conexiones de otros clientes.
 	 * 
 	 * @param unknown el buffer de datos nuevos listos para leer en el socket del cliente
 	 * @param React\Server\Connection $connCliente conexin del cliente que origina la nueva lectura
@@ -439,7 +438,7 @@ class PhpKimaldiServer extends React\Socket\Server
 					$received_text = $this->miWsManager->unmask($data); 
 										
 					//un cliente que se va (cerrando el socket) manda un par de caracteres ascii
-					//03 EXT seguido de algún otro por lo tanto ya no deberiamos seguir
+					//03 EXT seguido de algï¿½n otro por lo tanto ya no deberiamos seguir
 					if (ord($received_text[0]) == 3 || ord($received_text[1]) == 3)
 					{
 						//trama WS de fin de comunicacion, a continucacion saldra el evento onFinalizacionCliente
@@ -624,7 +623,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//---------------------------------------------------------------------------
 	/**
-	 * Funcion de uso interno de esta clase, envía un mensaje de cadena sin estructura concreta hacia todos
+	 * Funcion de uso interno de esta clase, envï¿½a un mensaje de cadena sin estructura concreta hacia todos
 	 * los clientes que mantengan conexion con el servidor
 	 * 
 	 * @param string $msg mensaje que sera enviado a todos y cada uno de los clientes conectados, via WebSocket.
@@ -653,7 +652,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * @param string $opcRespuestaEsperado (Opcional)
 	 * 
 	 * @return int: Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 */
 	
 	function manda_comando_electronica($trama, $opcRespuestaEsperado=null)
@@ -799,7 +798,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * AnsHotReset()
 	 * 
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 *este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function HotReset()
@@ -822,10 +821,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * AnsTestNodeLink()
 	 * 
 	 * Manda una trama de test, esperando respuesta, sirve para comprobar la comunicacion con la 
-	 * electrónica de forma fehaciente
+	 * electrï¿½nica de forma fehaciente
 	 *
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 *este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function TestNodeLink()
@@ -850,7 +849,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * @param unknown $tTime numero de decimas de segundo de la activacion valor hexadecimal
 	 * 
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 * este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function ActivateDigitalOutput($numOut, $tTime)
@@ -871,10 +870,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * AnsSwitchDigitalOutput()
 	 * 
 	 * @param unknown $numOut Numero de salida digital (numeradas de 0 a 3 en el caso de la Biomax2) valor hexadecimal
-	 * @param boolean $mode Determina si la salida adquirirá estado activad o inactivado
+	 * @param boolean $mode Determina si la salida adquirirï¿½ estado activad o inactivado
 	 * 
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 * este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function SwitchDigitalOutput($numOut, $mode)
@@ -906,7 +905,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * @param unknown $tTime numero de decimas de segundo de la activacion valor hexadecimal
 	 *
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 * este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function ActivateRelay($numRelay, $tTime)
@@ -929,7 +928,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * @param boolean $mode Determina si el rele adquirira un estado de abierto o cerrado
 	 *
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 * este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function SwitchRelay($numRelay, $mode)
@@ -955,7 +954,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * desde el objeto $generadorTramas y lo manda hacia la electronica.
 	 * 
 	 * La trama solicita a la electronica que lance la trama de evento de entradas digitales que acaba invocando el manejador de evento OnDigitalInput, 
-	 * la trama es idéntica a las que genera de forma espontanea la electronica cuando hay cambios en dichas entradas
+	 * la trama es idï¿½ntica a las que genera de forma espontanea la electronica cuando hay cambios en dichas entradas
 	 * permite testear y actualizar el estado actual
 	 */
 	public function TxDigitalInput()
@@ -972,17 +971,17 @@ class PhpKimaldiServer extends React\Socket\Server
 	/**
 	 * Recibe una trama de bytes en el formato de Kimaldi
 	 * desde el objeto $generadorTramas y lo manda hacia la electronica
-	 * La trama Manda una cadena de texto para que la electrónica la muestre en su display, se produce, además,
-	 * una retroiluminación momentánea del Display. 
+	 * La trama Manda una cadena de texto para que la electrï¿½nica la muestre en su display, se produce, ademï¿½s,
+	 * una retroiluminaciï¿½n momentï¿½nea del Display. 
 	 * 
 	 * La respuesta de la electronica invoca al manejador de eventos
 	 * AnsSwitchRelay()
 	 *
-	 * @param string $Text Texto a mostrar en la pantalla de los terminales que dispongan de ella, los primeros 20 caracteres corresponderán a la primera línea
-	 * los últimos 20 caracteres corresponderán a la segunda.
+	 * @param string $Text Texto a mostrar en la pantalla de los terminales que dispongan de ella, los primeros 20 caracteres corresponderï¿½n a la primera lï¿½nea
+	 * los ï¿½ltimos 20 caracteres corresponderï¿½n a la segunda.
 	 *
 	 * @return int Un valor numerico contenido normalmente en la coleccion $codColectMethodReturn que coincide con los valores que
-	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operación siendo el valor 0 el valor de operacion correcta
+	 * emiten los metodos de la clase BioNet de Kimaldi, describen el resultado de la operaciï¿½n siendo el valor 0 el valor de operacion correcta
 	 * este valor se recibe y se propaga desde la funcion $this->manda_comando_electronica
 	 */
 	public function WriteDisplay($Text)
@@ -1145,7 +1144,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	/**
 	 * Es invocada al recibir una trama de respuesta de reset en caliente, enviada como consecuencia
-	 * del uso del método HotReset()
+	 * del uso del mï¿½todo HotReset()
 	 * llama a su vez a la funcion AnsHotReset() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsHotReset()
@@ -1160,7 +1159,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//--------------------------------------------------------------------
 	/**
 	 * Es invocada al recibir una trama de respuesta de test de conexion, enviada como consecuencia
-	 * del uso del método TestNodeLink()
+	 * del uso del mï¿½todo TestNodeLink()
 	 * llama a su vez a la funcion AnsTestNodeLink() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsTestNodeLink()
@@ -1174,7 +1173,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//--------------------------------------------------------------------
 	/**
 	 * Es invocada al recibir una trama de respuesta de activacion temporal de salidas digitales, enviada como consecuencia
-	 * del uso del método ActivateDigitalOutput()
+	 * del uso del mï¿½todo ActivateDigitalOutput()
 	 * llama a su vez a la funcion AnsActivateDigitalOutput() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsActivateDigitalOutput()
@@ -1188,7 +1187,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//--------------------------------------------------------------------
 	/**
 	 * Es invocada al recibir una trama de respuesta de cambio de estado de salidas digitales, enviada como consecuencia
-	 * del uso del método SwitchDigitalOutput()
+	 * del uso del mï¿½todo SwitchDigitalOutput()
 	 * llama a su vez a la funcion AnsSwitchDigitalOutput() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsSwitchDigitalOutput()
@@ -1202,7 +1201,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//--------------------------------------------------------------------
 	/**
 	 * Es invocada al recibir una trama de respuesta de cambio de activacion temporal de rele, enviada como consecuencia
-	 * del uso del método ActivateRelay()
+	 * del uso del mï¿½todo ActivateRelay()
 	 * llama a su vez a la funcion AnsActivateRelay() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsActivateRelay()
@@ -1216,7 +1215,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//--------------------------------------------------------------------
 	/**
 	 * Es invocada al recibir una trama de respuesta de cambio de cambio de estado de rele, enviada como consecuencia
-	 * del uso del método SwitchRelay()
+	 * del uso del mï¿½todo SwitchRelay()
 	 * llama a su vez a la funcion AnsSwitchRelay() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsSwitchRelay()
@@ -1230,7 +1229,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	//--------------------------------------------------------------------
 	/**
 	 * Es invocada al recibir una trama de respuesta de escritura de texto en display, enviada como consecuencia
-	 * del uso del método WriteDisplay()
+	 * del uso del mï¿½todo WriteDisplay()
 	 * llama a su vez a la funcion AnsWriteDisplay() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaAnsWriteDisplay()
@@ -1366,7 +1365,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	*/
 	//implementar TCPClose() en clase heredera
 	/**
-	 * Es invocada cuando se pierde la comunicación TCP con la electrónica y el cierre de socket es efectivo
+	 * Es invocada cuando se pierde la comunicaciï¿½n TCP con la electrï¿½nica y el cierre de socket es efectivo
 	 * llama a su vez a la funcion TCPClose() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaTCPClose()
@@ -1409,10 +1408,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	//------------------------------------------------
 	//implementar NodeTimeOut(); en clase heredera
 	//es un evento que se lanza cuando Se ha agotado el Timeout de comunicaciones con la 
-	//electrónica entre una instrucción y la recepción de su respuesta. (el num de segundos es configurable en Configuracion.php)
+	//electrï¿½nica entre una instrucciï¿½n y la recepciï¿½n de su respuesta. (el num de segundos es configurable en Configuracion.php)
 	/**
 	 * Es invocada cuando Se ha agotado el Timeout de comunicaciones con la 
-	 * electrónica entre una instrucción y la recepción de su respuesta. (el num de segundos es configurable en Configuracion.php).
+	 * electrï¿½nica entre una instrucciï¿½n y la recepciï¿½n de su respuesta. (el num de segundos es configurable en Configuracion.php).
 	 * llama a su vez a la funcion NodeTimeOut() que debe ser implementada en una clase que hereda,
 	 */
 	private function procesaNodeTimeOut()
@@ -1464,10 +1463,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	//mandara tramas de diagnostico para ser monitorizadas en el mismo navegador
 	/**
 	 * Mandara tramas de diagnostico para ser monitorizadas en el mismo navegador, la clase jsKimaldiClient las procesa y muestra automaticamente
-	 * en un pequeño panel de control, si esta activado su propio modo debug.
+	 * en un pequeï¿½o panel de control, si esta activado su propio modo debug.
 	 * 
-	 * Puede que en produccion produzcan un trafico innecesario, en desarrollo, proporcionan información util sobre el proceso del lado del servidor
-	 * estos mensajes suelen ser mandados automaticamente en el negocio normal de esta aplicación, si no se desea su envio se puede determinar en la clase Configuracion
+	 * Puede que en produccion produzcan un trafico innecesario, en desarrollo, proporcionan informaciï¿½n util sobre el proceso del lado del servidor
+	 * estos mensajes suelen ser mandados automaticamente en el negocio normal de esta aplicaciï¿½n, si no se desea su envio se puede determinar en la clase Configuracion
 	 * 
 	 * Los mensajes de texto, seran encapsulados en el protocolo jsonKimaldiProtocol (tipo:debug)
 	 * 
@@ -1512,7 +1511,7 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * Esta funcion pone en marcha el loop que mantiene el proceso del servidor, antes inicializa el manejo de algunos eventos, 
 	 * se sirve para ello del metodo inicializaEventos() y coloca el socket en modo escucha para admiscion de nuevos clientes.
 	 *
-	 * Este proceso lo mantiene un loop que se mantiene de forma indefinida, ninguna instruccion que se realice despues la función Run() se ejecutará
+	 * Este proceso lo mantiene un loop que se mantiene de forma indefinida, ninguna instruccion que se realice despues la funciï¿½n Run() se ejecutarï¿½
 	 * a menos que el loop se pare expresamente. Consultar documentacion de React\EventLoop\LoopInterface 
 	 */
 	public function Run()
