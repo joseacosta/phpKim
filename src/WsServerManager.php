@@ -1,12 +1,27 @@
 <?php
 
-
+/**
+ *Esta clase controla el proceso de cabeceras de cliente entrantes y completa  el Handshake de WebSockets
+ *tambien codifica y descodifica tramas de formato websocket
+ *
+ *@author Jose Acosta
+ */
 class WsServerManager
 {
 	
 	
 	//--------------------------------------------------------------------------
-	//completa el handshakeusando HTTP con el objeto conexion dado y la cabecera request recibida
+	//completa el handshake usando HTTP con el objeto conexion dado y la cabecera request recibida
+	
+	/**
+	 * Completa el HandShake con un cliente que solicita la conexion WebSocket, toma para ello la cabecera Request que envía el cliente
+	 * en HTTP y un objeto de conexion React\Socket\Connection para completar el proceso, precisa un tercer parametro que e sla Ip propia del servidor
+	 * necesario para el campo WebSocket-Origin: de la cabecera HTTP Request
+	 * 
+	 * @param string  $receved_header cabecera HTTP Request de petición de Handshake que envía el nuevo cliente
+	 * @param React\Socket\Connection $conn objeto que encapsula la conexion con el cliente entrante
+	 * @param string $iphost Direccion Ip propia del servidor
+	 */
 	function perform_handshaking($receved_header,$conn, $iphost)
 	{
 		$headers = array();
@@ -44,9 +59,12 @@ class WsServerManager
 	}
 	
 	//--------------------------------------------------------------------------
-	/*
-	 * Determina si un mensaje es una peticion HTTP de apertura de conexion Websocket (Handshake)
+
+	/**
+	 * Determina si un mensaje es una cabecera Request HTTP de apertura de conexion Websocket (Handshake)
 	 * 
+	 * @param string $mensaje
+	 * @return boolean Devuelve el true en caso de ser cabecera HTTP de petición de HandShake Websocket y false en caso negativo
 	 */
 	function mensajeEsDeApertura($mensaje)
 	{
@@ -63,7 +81,12 @@ class WsServerManager
 	}
 	
 	//--------------------------------------------------------------------------
-	//descodifica la trama websoket recibida
+	/**
+	 * Descodifica una trama en formato WebSocket codificada y la devuelve descodificada 
+	 * 
+	 * @param string $text la trama en formato WebSocket codificada
+	 * @return string devuelve la cadena del mensaje contenido en la trama websocket codificada
+	 */
 	function unmask($text)
 	{
 		$length = ord($text[1]) & 127;
@@ -89,7 +112,12 @@ class WsServerManager
 	
 	
 	//--------------------------------------------------------------------------
-	//codifica (enmascara) mensaje en formato de trama de websocket
+	/**
+	 * Codifica o enmascara un mensaje y lo envuelve en una trama codificada con formato adecuado para el protocolo WebSocket
+	 * 
+	 * @param string $text el mensaje que se pretende incrustar en una trama de protocolo WebSocket
+	 * @return string Devuelve una trama completa, cumpliendo las directrices del protocolo WebSocket
+	 */
 	function mask($text)
 	{
 		$b1 = 0x80 | (0x1 & 0x0f);

@@ -211,8 +211,9 @@ $servKimaldi = new ExtensionKimaldiServer();
 //conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
 $valorconexion = $servKimaldi->OpenPortTCP( Configuracion::$ipElectronica );
 
-//probando conexion con uart2 de la electronica y ser2net en la raspberrry
-//$valorconexion = $servKimaldi->OpenPortTCP("192.168.1.133", 4001);
+//probando conexion con uart2 de la electronica en la raspberrry, OJO a la IP local del serv... servira 127.0.0.1?
+//cuidado tb con el puerto configurado en 53r2n3t
+//$valorconexion = $servKimaldi->OpenPortTCP(Configuracion::$ipLocalServer;, 4001); 
 	
 echo "\nValor de conexion devuelto por openporttcp:".$valorconexion."\n";
 

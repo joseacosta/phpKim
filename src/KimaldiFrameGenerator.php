@@ -1,6 +1,13 @@
 <?php 
 
-
+/**
+ * Esta clase genera tramas de bytes con formato adecuado al protocolo de tramas de Kimaldi, en concreto las que se usan 
+ * para comunicaciones por TCP, puede calcular los checksums adecuados y desglosar sus campos para ser analizados por otros 
+ * procesos.
+ * Tambien incorpora métodos que devuelven las tramas a nivel de Byte de las instrucciones principales que acepta la placa BioMax2
+ *
+ *@author Jose Acosta
+ */
 class KimaldiFrameGenerator
 {
 	

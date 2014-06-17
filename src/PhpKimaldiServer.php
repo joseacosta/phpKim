@@ -50,7 +50,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	protected $generadorTramas;
 	
 	/**
-	 * Instancia de la clase Loop de React que controla el Loop de eventos
+	 * Instancia de una Clase que implemente React\EventLoop\LoopInterface de React. 
+	 * Controla el Loop de eventos y mantiene activo el proceso del servidor
+	 * 
+	 * @var React\EventLoop\LoopInterface
 	 */
 	protected $miLoop;
 	
@@ -1138,6 +1141,8 @@ class PhpKimaldiServer extends React\Socket\Server
 	 * PROCESADO EVENTOS DE RESPUESTA (ANS)
 	 * 
 	 */
+	
+	
 	/**
 	 * Es invocada al recibir una trama de respuesta de reset en caliente, enviada como consecuencia
 	 * del uso del método HotReset()
@@ -1257,8 +1262,16 @@ class PhpKimaldiServer extends React\Socket\Server
 		
 	//-----------------------------------------------------
 	
-	
-	//desambiguacion entre OnStatusDigitalOutput o AnsActivateDigitalOutput (OPC 0x30)
+	/**
+	 * Es invocada al detectarse una trama con OPC 0x30
+	 * este valor es ambiguo, ya que puede tratarse de una trama de respuesta AnsActivateDigitalOutput, respuesta a una trama de activacion de salida digital
+	 * o puede tratarse de un evento de fin de la activacion temporal de salida digital, OnStatusDigitalOutput. Ambas se pueden identificar por el criterio del campo ARG de la trama.
+	 * Una vez llevada a cambio la desambiguacion, propaga la orden a cualquiera de los dos eventos potenciales
+	 * 
+	 * 
+	 * @param unknown $arg campo ARG de la trama de bytes recibida, puede contener el numero de salida que acabo la temporalizacion, en caso de OnStatusDigitalOutput
+	 * o valor 0 en caso de AnsActivateDigitalOutput
+	 */
 	private function desambiguacionDigitalOutput($arg)
 	{
 		
@@ -1296,6 +1309,15 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	
 	//desambiguacion entre OnStatusRelay o AnsActivateRelay (OPC 0x40)
+	/**
+	 * Es invocada al detectarse una trama con OPC 0x40
+	 * este valor es ambiguo, ya que puede tratarse de una trama de respuesta AnsActivateRelay, respuesta a una trama de activacion de rele
+	 * o puede tratarse de un evento de fin de la activacion temporal de rele, OnStatusDigitalRelay. Ambas se pueden identificar por el criterio del campo ARG de la trama.
+	 * Una vez llevada a cambio la desambiguacion, propaga la orden a cualquiera de los dos eventos potenciales
+	 *
+	 * @param unknown $arg campo ARG de la trama de bytes recibida, puede contener el numero de rele que acabo la temporalizacion, en caso de OnStatusRelay
+	 * o valor 0 en caso de AnsActivateRelay
+	 */
 	private function desambiguacionRelay($arg)
 	{
 		
@@ -1343,7 +1365,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	*
 	*/
 	//implementar TCPClose() en clase heredera
-	//es un evento que se lanza cuando se pierde la comunicación TCP con la electrónica y el cierre de socket es efectivo
+	/**
+	 * Es invocada cuando se pierde la comunicación TCP con la electrónica y el cierre de socket es efectivo
+	 * llama a su vez a la funcion TCPClose() que debe ser implementada en una clase que hereda,
+	 */
 	private function procesaTCPClose()
 	{
 		if ( method_exists($this, "TCPClose") )
@@ -1354,7 +1379,10 @@ class PhpKimaldiServer extends React\Socket\Server
 
 	//------------------------------------------------
 	//implementar TCPError() en clase heredera
-	//es un evento que se lanza cuando se produce algun error de sistema en la comunicacion TCP 
+	/**
+	 * Es invocada cuando se produce algun error de sistema en la comunicacion TCP
+	 * llama a su vez a la funcion TCPError() que debe ser implementada en una clase que hereda,
+	 */
 	private function procesaTCPError($error)
 	{
 		if ( method_exists($this, "TCPError") )
@@ -1365,8 +1393,11 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//------------------------------------------------
 	//implementar FrameDelay(); en clase heredera
-	//es un evento que se lanza cuando se produce cuando la electronica recibe una instruccion pero
-	//no puede atenderla por estar ocupada
+	/**
+	 * Es invocada cuando se produce cuando la electronica recibe una instruccion pero
+	 * no puede atenderla por estar ocupada.
+	 * llama a su vez a la funcion FrameDelay() que debe ser implementada en una clase que hereda,
+	 */
 	private function procesaFrameDelay()
 	{
 		if ( method_exists($this, "TFrameDelay") )
@@ -1379,6 +1410,11 @@ class PhpKimaldiServer extends React\Socket\Server
 	//implementar NodeTimeOut(); en clase heredera
 	//es un evento que se lanza cuando Se ha agotado el Timeout de comunicaciones con la 
 	//electrónica entre una instrucción y la recepción de su respuesta. (el num de segundos es configurable en Configuracion.php)
+	/**
+	 * Es invocada cuando Se ha agotado el Timeout de comunicaciones con la 
+	 * electrónica entre una instrucción y la recepción de su respuesta. (el num de segundos es configurable en Configuracion.php).
+	 * llama a su vez a la funcion NodeTimeOut() que debe ser implementada en una clase que hereda,
+	 */
 	private function procesaNodeTimeOut()
 	{
 		if ( method_exists($this, "NodeTimeOut") )
@@ -1389,7 +1425,10 @@ class PhpKimaldiServer extends React\Socket\Server
 	
     //------------------------------------------------
 	//implementar ErrOpCode() en clase heredera
-	//es un evento que se lanza cuando la electronica recibe trama pero no admite la instruccion normalmente OPC no valido
+	/**
+	 * Es invocada cuando la electronica recibe trama pero no admite la instruccion, normalmente, OPC no valido
+	 * llama a su vez a la funcion ErrOpCode() que debe ser implementada en una clase que hereda,
+	 */
 	private function procesaErrOpCode()
 	{
 		if ( method_exists($this, "ErrOpCode") )
@@ -1401,6 +1440,13 @@ class PhpKimaldiServer extends React\Socket\Server
 	//------------------------------------------------
 	//implementar FrameError() en clase heredera
 	//es un evento que se lanza cuando la electronica recibe trama pero tiene uns estructura erronea
+	/**
+	 * Es invocada cuando la electronica recibe trama pero tiene una estructura erronea
+	 * normalmente lo ocasionaun CRC no valido, las tramas que no cumplan, hasta cierto punto el formato del protocolo Kimaldi
+	 * no obtienen respuesta alguna de la electronica, y no disparara ningun evento de error.
+	 * 
+	 * llama a su vez a la funcion ErrOpCode() que debe ser implementada en una clase que hereda,
+	 */
 	private function procesaFrameError()
 	{
 		if ( method_exists($this, "FrameError") )
@@ -1416,8 +1462,18 @@ class PhpKimaldiServer extends React\Socket\Server
 	
 	//-------------------------------------------------------------------------
 	//mandara tramas de diagnostico para ser monitorizadas en el mismo navegador
-	//puede que en produccion produzcan un trafico innecesario, se pueden mandar a un cliente concreto
-	//precisa parametro clase Connection de ReactPHP o bien a todos (param1 = null)
+	/**
+	 * Mandara tramas de diagnostico para ser monitorizadas en el mismo navegador, la clase jsKimaldiClient las procesa y muestra automaticamente
+	 * en un pequeño panel de control, si esta activado su propio modo debug.
+	 * 
+	 * Puede que en produccion produzcan un trafico innecesario, en desarrollo, proporcionan información util sobre el proceso del lado del servidor
+	 * estos mensajes suelen ser mandados automaticamente en el negocio normal de esta aplicación, si no se desea su envio se puede determinar en la clase Configuracion
+	 * 
+	 * Los mensajes de texto, seran encapsulados en el protocolo jsonKimaldiProtocol (tipo:debug)
+	 * 
+	 * @param string $texto mensaje de debug que recibira el cliente 
+	 * @param React\Socket\Connection|null $connClient parametro clase Connection de ReactPHP para enviarlo a un cliente concreto, el valor null produce un broadcast a todos los clientes
+	 */
 	public function debugFrameToClient($texto, $connClient)
 	{
 		$mensaje_debug= $this->miWsManager->mask(json_encode(array('tipo'=>'debugMsg', 'server'=>$this->ipLocal, 'message'=> $texto)));
@@ -1433,7 +1489,12 @@ class PhpKimaldiServer extends React\Socket\Server
 		
 	}
 	//---------------------------------------------------------------------------
-	
+	/**
+	 * Control de mensajes del servidor por la salida estandar stdout, agrega timestamp al comienzode linea
+	 * 
+	 * @param string $msg el mensaje que se emitira
+	 * @param boolean $agregaSaltoLinea el mensaje se incluye on saltos de linea y timestamp o es textual
+	 */ 
 	public function controlEchoDebugServer($msg, $agregaSaltoLinea = true)
 	{
 		
@@ -1447,7 +1508,13 @@ class PhpKimaldiServer extends React\Socket\Server
 	}
 	
 	//---------------------------------------------------------------------------
-	
+	/**
+	 * Esta funcion pone en marcha el loop que mantiene el proceso del servidor, antes inicializa el manejo de algunos eventos, 
+	 * se sirve para ello del metodo inicializaEventos() y coloca el socket en modo escucha para admiscion de nuevos clientes.
+	 *
+	 * Este proceso lo mantiene un loop que se mantiene de forma indefinida, ninguna instruccion que se realice despues la función Run() se ejecutará
+	 * a menos que el loop se pare expresamente. Consultar documentacion de React\EventLoop\LoopInterface 
+	 */
 	public function Run()
 	{
 		
