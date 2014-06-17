@@ -1,12 +1,13 @@
 <?php
+
 //php htdocs/phpkimaldi/testReact/ExtensionKimaldiServer.php
-//php C:\xampp\htdocs\pyt\KimaldiServer\phpKim\ExtensionKimaldiServer.php
+//php C:\xampp\htdocs\pyt\phpKimServer\phpKim\ExtensionKimaldiServer.php
 
 require_once 'src/Configuracion.php';
 require_once 'src/PhpKimaldiServer.php';
 
 //extendemos la clase libremente
-Class ExtensionKimaldiServer extends PhpKimaldiServer
+Class ExtensionKimaldiServer extends phpKimaldiServer\PhpKimaldiServer
 {
 	
 	private $conexionDB;
@@ -22,7 +23,7 @@ Class ExtensionKimaldiServer extends PhpKimaldiServer
 		parent::__construct();
 		
 		//inicializamos la conexion con la base de datos
-		$this->conexionDB = new mysqli(Configuracion::$bdServer,Configuracion::$bdUsuario,Configuracion::$bdPass,Configuracion::$baseDatos);
+		$this->conexionDB = new mysqli(phpKimaldiServer\Configuracion::$bdServer, phpKimaldiServer\Configuracion::$bdUsuario, phpKimaldiServer\Configuracion::$bdPass, phpKimaldiServer\Configuracion::$baseDatos);
 		
 	}
 	
@@ -209,7 +210,7 @@ $servKimaldi = new ExtensionKimaldiServer();
 
 
 //conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
-$valorconexion = $servKimaldi->OpenPortTCP( Configuracion::$ipElectronica );
+$valorconexion = $servKimaldi->OpenPortTCP( phpKimaldiServer\Configuracion::$ipElectronica );
 
 //probando conexion con uart2 de la electronica en la raspberrry, OJO a la IP local del serv... servira 127.0.0.1?
 //cuidado tb con el puerto configurado en 53r2n3t

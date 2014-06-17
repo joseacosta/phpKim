@@ -1,4 +1,5 @@
 <?php
+namespace phpKimaldiServer;
 
 /**
  *Esta clase controla el proceso de cabeceras de cliente entrantes y completa  el Handshake de WebSockets
@@ -14,11 +15,11 @@ class WsServerManager
 	//completa el handshake usando HTTP con el objeto conexion dado y la cabecera request recibida
 	
 	/**
-	 * Completa el HandShake con un cliente que solicita la conexion WebSocket, toma para ello la cabecera Request que envía el cliente
+	 * Completa el HandShake con un cliente que solicita la conexion WebSocket, toma para ello la cabecera Request que envï¿½a el cliente
 	 * en HTTP y un objeto de conexion React\Socket\Connection para completar el proceso, precisa un tercer parametro que e sla Ip propia del servidor
 	 * necesario para el campo WebSocket-Origin: de la cabecera HTTP Request
 	 * 
-	 * @param string  $receved_header cabecera HTTP Request de petición de Handshake que envía el nuevo cliente
+	 * @param string  $receved_header cabecera HTTP Request de peticiï¿½n de Handshake que envï¿½a el nuevo cliente
 	 * @param React\Socket\Connection $conn objeto que encapsula la conexion con el cliente entrante
 	 * @param string $iphost Direccion Ip propia del servidor
 	 */
@@ -64,7 +65,7 @@ class WsServerManager
 	 * Determina si un mensaje es una cabecera Request HTTP de apertura de conexion Websocket (Handshake)
 	 * 
 	 * @param string $mensaje
-	 * @return boolean Devuelve el true en caso de ser cabecera HTTP de petición de HandShake Websocket y false en caso negativo
+	 * @return boolean Devuelve el true en caso de ser cabecera HTTP de peticiï¿½n de HandShake Websocket y false en caso negativo
 	 */
 	function mensajeEsDeApertura($mensaje)
 	{

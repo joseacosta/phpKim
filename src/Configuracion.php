@@ -1,4 +1,5 @@
 <?php
+namespace phpKimaldiServer;
 
 /**
  * Esta clase contiene todas las variables que son configurables en la aplicacion
@@ -35,12 +36,12 @@ class Configuracion
 	public static $hotResetAutomatico = true;
 	
 	//Parametros de servidor WebSocket 
-	//usando $ip = shell_exec("ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'") DISTRIBUCION EN ESPAÑOL usar cadena 'Direc. inet:'
+	//usando $ip = shell_exec("ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'") DISTRIBUCION EN ESPAï¿½OL usar cadena 'Direc. inet:'
 	//se podria obtener de forma dinamica la ip de este nodo
 	//public static $ipLocalServer = '192.168.0.145';
 	
 	/**
-	 * Dirección IP del servidor que permanece a la escucha de nuevas conexiones
+	 * Direcciï¿½n IP del servidor que permanece a la escucha de nuevas conexiones
 	 * @var string
 	 */
 	public static $ipLocalServer = '192.168.1.128';

@@ -3,4 +3,9 @@
     {
         "react/Socket": "0.4.*"
     }
+    ,
+    "classmap":
+    {
+    	"classmap":["src"]
+    }
 }
