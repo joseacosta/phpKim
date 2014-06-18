@@ -6,4 +6,8 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'KimaldiServerNamespace\\Configuracion' => $baseDir . '/src/Configuracion.php',
+    'KimaldiServerNamespace\\KimaldiFrameGenerator' => $baseDir . '/src/KimaldiFrameGenerator.php',
+    'KimaldiServerNamespace\\PhpKimaldiServer' => $baseDir . '/src/PhpKimaldiServer.php',
+    'KimaldiServerNamespace\\WsServerManager' => $baseDir . '/src/WsServerManager.php',
 );

@@ -1,5 +1,5 @@
 <?php 
-namespace phpKimaldiServer;
+namespace KimaldiServerNamespace;
 
 /**
  * Esta clase genera tramas de bytes con formato adecuado al protocolo de tramas de Kimaldi, en concreto las que se usan 

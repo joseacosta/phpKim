@@ -1,5 +1,5 @@
 <?php
-namespace phpKimaldiServer;
+namespace KimaldiServerNamespace;
 
 /**
  *Esta clase controla el proceso de cabeceras de cliente entrantes y completa  el Handshake de WebSockets

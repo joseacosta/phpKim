@@ -1,5 +1,5 @@
 <?php
-namespace phpKimaldiServer;
+namespace KimaldiServerNamespace;
 
 /**
  * Esta clase contiene todas las variables que son configurables en la aplicacion

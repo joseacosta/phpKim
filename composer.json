@@ -4,8 +4,8 @@
         "react/Socket": "0.4.*"
     }
     ,
-    "classmap":
+    "autoload":
     {
-    	"classmap":["src"]
+    	"classmap":["src/"]
     }
 }

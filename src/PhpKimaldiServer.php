@@ -1,5 +1,5 @@
 <?php
-namespace phpKimaldiServer;
+namespace KimaldiServerNamespace;
 
 require_once 'Configuracion.php';
 require_once 'KimaldiFrameGenerator.php';
@@ -7,7 +7,7 @@ require_once 'WsServerManager.php';
 
 require __DIR__.'/../vendor/autoload.php';
 
-//alternativamente 
+//alternativamente a usar el nombre completo\React\Socket\Server
 //use React\Socket\Server
 
 /**
