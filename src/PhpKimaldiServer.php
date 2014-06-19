@@ -506,7 +506,7 @@ class PhpKimaldiServer extends \React\Socket\Server
 						}
 						
 					}
-					elseif (isset($tst_msg->tipo) && $tst_msg->tipo == 'userMsg')//el usuario manda mensage normal (es solo texto plano) comunicacion inter-clientes
+					elseif (isset($tst_msg->tipo) && ($tst_msg->tipo == 'userMsg'|| $tst_msg->tipo == 'mensaje' )  )  //el usuario manda mensage normal (es solo texto plano) comunicacion inter-clientes
 					{
 						$ipRemitente =	$connCliente->getRemoteAddress();
 											
