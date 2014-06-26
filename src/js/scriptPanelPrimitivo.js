@@ -1,21 +1,13 @@
 
 
-function inicio()
+function inicio(dirServerWS, dirPuertoWS)
 {
-	/*
-	 implementar el sorteo de color con js y no php
-	 
-	 <?php 
-	$colours = array('007AFF','FF7000','FF7000','15E25F','CFC700','CFC700','CF1100','CF00BE','F00');
-	$user_colour = array_rand($colours);
-	?>
-	
-	 */
-	
+
 	
 	//objeto websoket.
 	//var wsUri = "ws://192.168.0.145:12000";
-	var wsUri = "ws://127.0.0.1:12000";
+	var wsUri = "ws://"+dirServerWS+":"+dirPuertoWS;
+	
 	websocket = new WebSocket(wsUri); 
 	
 	//ev conexion exitosa
@@ -24,8 +16,8 @@ function inicio()
 		$('#message_box').append("<div class=\"system_msg\">Connected!</div>"); //notify user
 	}
 	
-	websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión ws - "+ev.data+"</div>");}; 
-	websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada</div>");}; 
+	websocket.onerror	= function(ev){$('#message_box').append("<div class=\"system_error\">Error Conexión ws - "+ev.data+"</div>");   $('#message_box').scrollTop($('#message_box').prop("scrollHeight"));  }; 
+	websocket.onclose 	= function(ev){$('#message_box').append("<div class=\"system_msg\">Conexion cerrada</div>");  $('#message_box').scrollTop($('#message_box').prop("scrollHeight")); }; 
 	
 	
 	
@@ -67,16 +59,17 @@ function inicio()
 									var funcName = msg.funcName;
 									var args = msg.args;
 									
-									alert("recibido del servidor que llama a la funcion llamada "+funcName+"y con "+args.length+" argumentos");
+									$('#message_box').append("<div class=\"system_msg\">"+JSON.stringify(msg)+"</div>");
+									
+									//alert("recibido del servidor que llama a la funcion llamada "+funcName+"y con "+args.length+" argumentos");
 								}	
-								if(tipo == 'debugMsg')//TODO un interesantisimo recurso para el debug...
+								if(tipo == 'debugMsg')
 								{
-									$('#message_box').append("<div class=\"system_msg\">"+umsg+"</div>");
+									$('#message_box').append("<div class=\"system_msg\">"+msg.message+"</div>");
+									
+									inspeccionaMsgDebugDigitalInput(msg.message);
 								}
-								if(tipo == 'system')
-								{
-									$('#message_box').append("<div class=\"system_msg\">"+umsg+"</div>");
-								}
+								
 						
 							    $('#message_box').scrollTop($('#message_box').prop("scrollHeight"));		
 						
@@ -101,16 +94,16 @@ function inicio()
 
 	$('#send-btn').click(   function()
 							{ 	
-								var mymessage = $('#message').val(); //get message text
+								var mymessage = $('#message').val(); 
 								
 								
 								
-								if(mymessage == ""){ //emtpy message?
+								if(mymessage == ""){ 
 									alert("introduzca mensaje");
 									return;
 								}
 								
-								//prepare json data
+								
 								var msg = 
 								{
 									tipo:"mensaje",
@@ -458,18 +451,20 @@ function inicio()
 	 */
     
     
-    function esTramaDigitalInput(trama)
+   
+    
+    //-----------------------------------------------------
+    //el servidor suele mandar mensajes de debug en formato jsonKimadiProtocol cuando llega una trama de la electronica
+    function inspeccionaMsgDebugDigitalInput(msgdebug)
     {
+    	var posOPC60 = msgdebug.indexOf("60");
     	
-    	if(trama[1]+trama[2]=="60")
+    	if( posOPC60 > -1 )
     	{
-    		return true;
+    		var tramaDIN = msgdebug.substring(posOPC60, msgdebug.length);
+    		
+    		procesaTramaDigitalInput(tramaDIN);
     	}
-    	else
-    	{
-    		return false;
-    	}
-    	
     }
     
     //--------------------------------------------------------
@@ -477,7 +472,7 @@ function inicio()
     function procesaTramaDigitalInput(trama)
     {
     	
-    	arg = trama[7]+trama[8];
+    	arg = trama[6]+trama[7];
     
 
     	//parse int tomando cadenas de numeros en base 16, posteriormente tostring, traduciendo a cadenas representando numeros en base dos

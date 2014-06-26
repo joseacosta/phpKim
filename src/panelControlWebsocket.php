@@ -9,7 +9,7 @@
 	
 	
 	<script src="js/jquery-2.1.1.min.js"></script>
-	<script src="js/script.js"></script>
+	<script src="js/scriptPanelPrimitivo.js"></script>
 	
 	<link href="css/estilo.css" rel="stylesheet" type="text/css">
 	
@@ -19,7 +19,11 @@
 	
 	$(document).ready(	function()
 						{
-							inicio();
+							$("#botonconexion").click(function(){  
+
+										inicio(  $("#dirServerWS").val(), $("#dirPuertoWS").val()  );
+
+								  });
 						});
 	</script>
 
@@ -35,6 +39,17 @@
 		
 			<div class="panel">
 			
+				<fieldset>
+	            <legend>Conexion WS</legend>
+	            
+				IP Serv: <input type="text" name="message" id="dirServerWS"  value='<?php echo $_SERVER['SERVER_ADDR'] ?>' maxlength="15" style="width:20%" />
+				Puerto: <input type="text" name="message" id="dirPuertoWS"  value='12000' maxlength="15" style="width:10%" />
+				&nbsp; &nbsp;<button id="botonconexion">Conectar</button>
+				
+				
+				</fieldset>
+				
+				<br/>
 				
 				<input type="text" name="message" id="message"  maxlength="80" style="width:60%" />
 				<button id="send-btn">SendMsg</button>

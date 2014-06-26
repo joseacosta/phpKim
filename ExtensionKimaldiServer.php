@@ -3,6 +3,8 @@
 //php htdocs/phpkimaldi/testReact/ExtensionKimaldiServer.php
 //php C:\xampp\htdocs\pyt\phpKimServer\phpKim\ExtensionKimaldiServer.php
 
+
+//si no utilizamos el /vendor/autoload que ha generado composer, podemos usar los includes tradicionales
 /*
 require_once 'src/Configuracion.php';
 require_once 'src/PhpKimaldiServer.php';
@@ -40,6 +42,8 @@ Class ExtensionKimaldiServer extends KimaldiServerNamespace\PhpKimaldiServer
 		
 		echo "\nEvento onTrack lanzado!!! track:".$track;
 		
+		$this->informaClientesResultadoLecturaTarjeta($track);
+		
 
 		//###Primero controlamos si el nodo tiene asociada una taquilla en la bd y guardo su id
 		$result = $this->conexionDB->query("SELECT id_taquillas 
@@ -48,7 +52,7 @@ Class ExtensionKimaldiServer extends KimaldiServerNamespace\PhpKimaldiServer
 		
 		if ($result->num_rows == 0)
 		{
-			echo "\nNo existe taquilla en la logica de la BD asociada a este nodo con IP: ".$this->ipLocal."\n\n";
+			echo "\nLa dirección de este nodo no controla ninguna taquilla en la Base de Datos: ".$this->ipLocal."\n\n";
 			return;
 		}
 		
@@ -67,6 +71,12 @@ Class ExtensionKimaldiServer extends KimaldiServerNamespace\PhpKimaldiServer
 		if ($result->num_rows == 0)
 		{
 			echo "\nNo existe empleado con numero de tarjeta equivalente a track: ".$track."\n\n";
+			
+			//MODO SUPER restrictivo, una tarjeta errónea hace saltar la alarma del relé num 2 (indice 1)
+			//comentar siguientes dos lineas para evitarlo
+			//$this->ActivateRelay(1, 0xA);
+			//echo "\nModo restrictivo, tarjeta no autorizada, dispara Alarma\n";
+			
 			return;
 		}	
 		
@@ -181,6 +191,17 @@ Class ExtensionKimaldiServer extends KimaldiServerNamespace\PhpKimaldiServer
 		}
 		
 	}
+	
+	//--------------------------------------------------------
+	
+	function informaClientesResultadoLecturaTarjeta($mensaje)
+	{
+		
+		//con broadcast informamos a todo cliente que estuviera conectado a este server/nodo
+		//llamamos a una funcion del cliente por su nombre
+		$this->broadcastClientFunction( "mensajeEntranteLecturaTarjeta", array($mensaje) );
+		
+	}
 
 	//--------------------------------------------------------
 	function functionTest($argumento1, $argumento2)
@@ -215,14 +236,14 @@ $servKimaldi = new ExtensionKimaldiServer();
 
 
 //conexion con la electronica, por defecto va atener siempre ala ip fija usada aqui
-$valorconexion = $servKimaldi->OpenPortTCP( KimaldiServerNamespace\Configuracion::$ipElectronica );
+$valorconexion = $servKimaldi->OpenPortTCP( KimaldiServerNamespace\Configuracion::$ipElectronica,  KimaldiServerNamespace\Configuracion::$puertoElectronica );
 
 //probando conexion con uart2 de la electronica en la raspberrry, OJO a la IP local del serv... servira 127.0.0.1?
-//cuidado tb con el puerto configurado en 53r2n3t
-//$valorconexion = $servKimaldi->OpenPortTCP(Configuracion::$ipLocalServer;, 4001); 
+//cuidado tb con el puerto configurado en 53r2n3t, ip de electronica, es el propio host, y el puerto esta conf a 4000
+//$valorconexion = $servKimaldi->OpenPortTCP( KimaldiServerNamespace\Configuracion::$ipLocalServer,  KimaldiServerNamespace\Configuracion::$puertoElectronica); 
 	
 echo "\nValor de conexion devuelto por openporttcp:".$valorconexion."\n";
 
-
+//RUNRUNRUNRUNRUNRUNRUNRUNRUNRUNRUNRUNRUNRUN#############################################
 //loop sin fin, ninguna instruccion mas alla de este punto se ejecutara
 $servKimaldi->Run();

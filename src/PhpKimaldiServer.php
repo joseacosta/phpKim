@@ -7,7 +7,7 @@ require_once 'WsServerManager.php';
 
 require __DIR__.'/../vendor/autoload.php';
 
-//alternativamente a usar el nombre completo\React\Socket\Server
+//alternativamente a usar el nombre completo \React\Socket\Server (ojo a a la barra raiz del comienzo)
 //use React\Socket\Server
 
 /**
@@ -237,7 +237,7 @@ class PhpKimaldiServer extends \React\Socket\Server
 		
 		//objeto react/connection que contiene el stream que conecto con la electronica
 		//notese que le pasamos el mismo loop que para todas las conexiones, posibilita escuchar sus eventos derecepcion
-		$this->conexElectronica = new React\Socket\Connection($clientStreamElectronica, $this->miLoop);
+		$this->conexElectronica = new \React\Socket\Connection($clientStreamElectronica, $this->miLoop);
 		
 		$this->controlEchoDebugServer("Conexion establecida con la electronica!!!");
 		
@@ -565,7 +565,7 @@ class PhpKimaldiServer extends \React\Socket\Server
 		
 		$mensaje_broadcast_clientes = $this->miWsManager->mask(json_encode(array('tipo'=>'func', 'funcName'=>$nombreFunc, 'args'=>$argList, 'server'=>$this->ipLocal )));
 		
-		$this->controlEchoDebugServer( "Broadcast todos los clientes, datos con valor: ".$mensaje_response_cliente );
+		$this->controlEchoDebugServer( "Broadcast todos los clientes, datos con valor: ".$mensaje_broadcast_cliente );
 			
 		$this->mandarTodosUsuarios($mensaje_broadcast_clientes);
 

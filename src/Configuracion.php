@@ -12,10 +12,16 @@ namespace KimaldiServerNamespace;
 class Configuracion
 {
 	/**
-	 * la direccion ip que tiene la electronica, hade conpartir subred con el servidor
+	 * la direccion ip que tiene la electronica, ha de compartir subred con el servidor
 	 * @var string
 	 */
 	public static $ipElectronica = "192.168.123.10";
+	
+	/**
+	 * puerto que usa la electronica para recibir conexiones TCP en el caso de Biomax2 es siempre 1001
+	 * @var string
+	 */
+	public static $puertoElectronica = "1001";
 	
 	/**
 	 * Tiempo de espera maximo que mantiene el servidor al establecer una conexion con la electronica
@@ -36,7 +42,7 @@ class Configuracion
 	public static $hotResetAutomatico = true;
 	
 	//Parametros de servidor WebSocket 
-	//usando $ip = shell_exec("ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'") DISTRIBUCION EN ESPA�OL usar cadena 'Direc. inet:'
+	//usando $ip = shell_exec("ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'") DISTRIBUCION EN ESPAÑOL usar cadena 'Direc. inet:'
 	//se podria obtener de forma dinamica la ip de este nodo
 	//public static $ipLocalServer = '192.168.0.145';
 	
